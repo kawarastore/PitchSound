@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KAWARA STUDIO — Batch Audio Processor</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.all.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #070709; --surface: #0e0e14; --surface2: #16161f; --surface3: #1d1d28;
+  --border: rgba(255,255,255,0.06); --border2: rgba(255,255,255,0.12); --border3: rgba(255,255,255,0.2);
+  --accent: #c8ff00; --accent-dim: rgba(200,255,0,0.12); --accent2: #00ffc8; --accent2-dim: rgba(0,255,200,0.1);
+  --danger: #ff4466; --warn: #ffaa00; --purple: #a855f7;
+  --text: #eeeef5; --muted: #666677; --muted2: #444455;
+  --font: 'Space Grotesk', sans-serif; --display: 'Bebas Neue', sans-serif; --mono: 'JetBrains Mono', monospace;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; overflow-x: hidden; }
+body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.bg-glow { position: fixed; pointer-events: none; z-index: 0; border-radius: 50%; filter: blur(120px); opacity: 0.06; }
+.bg-glow-1 { width: 600px; height: 600px; background: var(--accent); top: -200px; right: -100px; }
+.bg-glow-2 { width: 400px; height: 400px; background: var(--accent2); bottom: 100px; left: -100px; }
+.bg-glow-3 { width: 300px; height: 300px; background: var(--purple); top: 50%; left: 40%; }
+.wrapper { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 40px 24px 100px; }
+header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+.logo { display: flex; flex-direction: column; gap: 2px; }
+.logo-main { font-family: var(--display); font-size: 38px; letter-spacing: 4px; color: var(--accent); line-height: 1; }
+.logo-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 4px; text-transform: uppercase; }
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.badge { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,255,0,0.2); }
+
+/* TARGET BANNER */
+.target-banner { background: var(--surface); border: 1px solid rgba(200,255,0,0.2); border-radius: 20px; padding: 20px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 20px; position: relative; overflow: hidden; }
+.target-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 0% 50%, rgba(200,255,0,0.04) 0%, transparent 60%); pointer-events: none; }
+.target-icon { font-size: 28px; }
+.target-info { flex: 1; }
+.target-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 4px; }
+.target-val { font-family: var(--display); font-size: 32px; color: var(--accent); letter-spacing: 2px; }
+.target-inputs { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.target-inp { background: var(--surface2); border: 1px solid var(--border3); border-radius: 10px; padding: 8px 12px; color: var(--accent); font-family: var(--mono); font-size: 18px; font-weight: 700; width: 60px; text-align: center; outline: none; transition: border-color 0.2s; }
+.target-inp:focus { border-color: var(--accent); }
+.target-sep { font-family: var(--mono); color: var(--muted); font-size: 22px; }
+
+/* TABS */
+.input-tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 4px; }
+.tab-btn { flex: 1; padding: 10px 16px; border-radius: 10px; border: none; background: transparent; color: var(--muted); font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.tab-btn.active { background: var(--surface3); color: var(--text); border: 1px solid var(--border2); }
+.tab-btn:hover:not(.active) { color: var(--text); }
+
+/* HOW TO BOX */
+.howto-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 20px; padding: 20px 24px; margin-bottom: 16px; }
+.howto-title { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.howto-steps { display: flex; flex-direction: column; gap: 10px; }
+.howto-step { display: flex; align-items: flex-start; gap: 12px; }
+.step-num { font-family: var(--display); font-size: 22px; color: var(--accent); line-height: 1; flex-shrink: 0; width: 24px; }
+.step-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+.step-text em { color: var(--accent2); font-style: normal; font-weight: 600; }
+.step-text small { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* LINK PANEL */
+.link-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+.link-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.link-input { flex: 1; background: var(--surface2); border: 1px solid var(--border2); border-radius: 12px; padding: 12px 16px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none; transition: all 0.2s; }
+.link-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,255,0,0.06); }
+.link-input::placeholder { color: var(--muted2); }
+.link-add-btn { background: var(--accent); border: none; border-radius: 12px; padding: 12px 20px; color: #070709; font-family: var(--font); font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.link-add-btn:hover { background: #d4ff1a; box-shadow: 0 0 20px rgba(200,255,0,0.3); }
+.platform-hints { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.platform-badge { font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border2); color: var(--muted); }
+.platform-badge.yt { border-color: rgba(255,0,0,0.3); color: #ff6060; }
+.platform-badge.sc { border-color: rgba(255,85,0,0.3); color: #ff7040; }
+.platform-badge.tt { border-color: rgba(105,201,208,0.3); color: #69c9d0; }
+
+/* LINK QUEUE */
+.link-queue { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.link-item { display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; transition: all 0.2s; position: relative; overflow: hidden; }
+.link-item-progress { position: absolute; left: 0; top: 0; height: 100%; background: rgba(200,255,0,0.05); transition: width 0.4s ease; }
+.link-platform-icon { font-size: 16px; flex-shrink: 0; z-index: 1; }
+.link-item-info { flex: 1; min-width: 0; z-index: 1; }
+.link-title { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.link-url { font-family: var(--mono); font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.link-status-badge { font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 6px; flex-shrink: 0; z-index: 1; }
+.lsb-wait { background: rgba(255,255,255,0.06); color: var(--muted); }
+.lsb-fetch { background: rgba(200,255,0,0.1); color: var(--accent); }
+.lsb-ready { background: rgba(0,255,200,0.1); color: var(--accent2); }
+.lsb-error { background: rgba(255,68,68,0.1); color: var(--danger); }
+.lsb-proc { background: rgba(200,255,0,0.12); color: var(--accent); }
+.lsb-done { background: rgba(0,255,200,0.12); color: var(--accent2); }
+.link-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; z-index: 1; padding: 2px 4px; transition: color 0.2s; flex-shrink: 0; }
+.link-remove:hover { color: var(--danger); }
+
+/* FALLBACK PANEL - muncul saat error */
+.fallback-panel { background: rgba(255,170,0,0.05); border: 1px solid rgba(255,170,0,0.25); border-radius: 14px; padding: 16px 18px; margin-top: 8px; display: none; }
+.fallback-panel.show { display: block; animation: fadeUp 0.3s ease; }
+.fallback-title { font-family: var(--mono); font-size: 10px; color: var(--warn); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+.fallback-steps { font-size: 12px; color: var(--text); line-height: 1.8; margin-bottom: 14px; }
+.fallback-steps b { color: var(--accent); }
+.fallback-steps code { font-family: var(--mono); font-size: 11px; background: var(--surface2); padding: 1px 6px; border-radius: 4px; color: var(--accent2); }
+.fallback-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.cobalt-btn { padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(200,255,0,0.3); background: var(--accent-dim); color: var(--accent); font-family: var(--mono); font-size: 11px; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.cobalt-btn:hover { background: rgba(200,255,0,0.2); box-shadow: 0 0 16px rgba(200,255,0,0.2); }
+.cobalt-btn.yt { border-color: rgba(255,96,96,0.4); background: rgba(255,96,96,0.06); color: #ff8080; }
+.cobalt-btn.yt:hover { background: rgba(255,96,96,0.14); }
+.cobalt-btn.tt { border-color: rgba(105,201,208,0.4); background: rgba(105,201,208,0.06); color: #69c9d0; }
+.cobalt-btn.tt:hover { background: rgba(105,201,208,0.14); }
+
+/* STATUS DETAIL */
+.link-error-detail { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+/* UPLOAD */
+.upload-zone { border: 1.5px dashed var(--border2); border-radius: 20px; padding: 48px 32px; text-align: center; cursor: pointer; transition: all 0.25s; background: var(--surface); position: relative; overflow: hidden; margin-bottom: 16px; }
+.upload-zone::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 120%, rgba(200,255,0,0.04) 0%, transparent 60%); pointer-events: none; }
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(200,255,0,0.02); }
+.upload-icon { font-size: 40px; margin-bottom: 16px; }
+.upload-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.upload-sub { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.upload-sub span { color: var(--accent); }
+#file-input { display: none; }
+.file-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.file-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; position: relative; overflow: hidden; transition: border-color 0.2s; }
+.file-row.ready { border-color: rgba(200,255,0,0.15); }
+.file-row.processing { border-color: rgba(200,255,0,0.3); }
+.file-row.done { border-color: rgba(0,255,200,0.3); }
+.file-row.error { border-color: rgba(255,68,68,0.3); }
+.file-row-progress { position: absolute; left: 0; top: 0; height: 100%; background: rgba(200,255,0,0.05); transition: width 0.3s ease; }
+.file-icon2 { font-size: 18px; flex-shrink: 0; z-index: 1; }
+.file-info2 { flex: 1; min-width: 0; z-index: 1; }
+.file-name2 { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-meta2 { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+.file-speed-badge { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-dim); border-radius: 6px; padding: 2px 8px; flex-shrink: 0; z-index: 1; }
+.file-status { font-family: var(--mono); font-size: 11px; flex-shrink: 0; z-index: 1; width: 100px; text-align: right; }
+.file-status.wait { color: var(--muted); }
+.file-status.proc { color: var(--accent); }
+.file-status.ok { color: var(--accent2); }
+.file-status.err { color: var(--danger); }
+.file-remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; z-index: 1; padding: 2px 6px; flex-shrink: 0; transition: color 0.2s; }
+.file-remove-btn:hover { color: var(--danger); }
+
+/* SECTION */
+.section-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 4px; color: var(--muted); margin: 32px 0 16px; display: flex; align-items: center; gap: 12px; }
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.batch-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
+.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 12px; text-align: center; }
+.summary-val { font-family: var(--display); font-size: 28px; color: var(--accent2); letter-spacing: 1px; }
+.summary-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
+.process-btn { width: 100%; padding: 20px; border-radius: 18px; background: var(--accent); color: #070709; font-family: var(--display); font-size: 20px; letter-spacing: 3px; border: none; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.process-btn:disabled { background: var(--surface2); color: var(--muted2); cursor: not-allowed; }
+.process-btn:not(:disabled):hover { background: #d4ff1a; box-shadow: 0 0 40px rgba(200,255,0,0.35); transform: translateY(-2px); }
+.overall-progress { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; margin-top: 16px; }
+.overall-progress.show { display: block; animation: fadeUp 0.3s ease; }
+.prog-header { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.prog-label { color: var(--text); font-weight: 600; }
+.prog-pct { color: var(--accent); font-weight: 700; }
+.prog-bar-bg { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
+.prog-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; width: 0%; transition: width 0.4s ease; }
+.prog-status { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: center; letter-spacing: 2px; }
+.prog-current-file { font-family: var(--mono); font-size: 11px; color: var(--accent); text-align: center; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-wrap { display: none; background: var(--surface); border: 1px solid rgba(0,255,200,0.25); border-radius: 20px; padding: 28px; margin-top: 16px; position: relative; overflow: hidden; }
+.result-wrap::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(0,255,200,0.05) 0%, transparent 60%); pointer-events: none; }
+.result-wrap.show { display: block; animation: fadeUp 0.4s ease; }
+.result-title { font-family: var(--display); font-size: 24px; letter-spacing: 2px; color: var(--accent2); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+.result-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
+.stat-card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 14px; text-align: center; }
+.stat-val { font-family: var(--display); font-size: 24px; color: var(--accent2); letter-spacing: 1px; }
+.stat-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
+.track-list-title { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 3px; color: var(--muted); margin-bottom: 10px; }
+.track-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+.track-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border-radius: 10px; padding: 10px 14px; gap: 12px; }
+.track-num { font-family: var(--mono); font-size: 11px; color: var(--muted2); width: 20px; flex-shrink: 0; }
+.track-name { font-size: 13px; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track-speed-display { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-dim); border-radius: 6px; padding: 3px 10px; flex-shrink: 0; white-space: nowrap; }
+.track-normal-speed { font-family: var(--mono); font-size: 10px; color: var(--accent2); background: var(--accent2-dim); border-radius: 6px; padding: 3px 8px; flex-shrink: 0; }
+.download-btn { width: 100%; padding: 18px; border-radius: 16px; background: rgba(0,255,200,0.1); border: 1px solid rgba(0,255,200,0.3); color: var(--accent2); font-family: var(--display); font-size: 18px; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.download-btn:hover { background: rgba(0,255,200,0.18); box-shadow: 0 0 30px rgba(0,255,200,0.2); }
+.zip-structure { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 12px; padding: 12px 16px; background: var(--surface2); border-radius: 10px; line-height: 2; }
+.zip-structure .folder { color: var(--warn); }
+.zip-structure .file { color: var(--text); opacity: 0.7; }
+.toast { position: fixed; bottom: 32px; right: 32px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 14px; padding: 14px 22px; font-family: var(--mono); font-size: 13px; color: var(--text); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 10000; max-width: 360px; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: rgba(200,255,0,0.4); color: var(--accent); }
+.toast.error { border-color: rgba(255,68,68,0.4); color: var(--danger); }
+.toast.warn { border-color: rgba(255,170,0,0.4); color: var(--warn); }
+footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.credit { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.credit span { color: var(--accent); }
+.version { font-family: var(--mono); font-size: 11px; color: var(--muted2); }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+@media (max-width: 620px) {
+  .batch-summary, .result-stats { grid-template-columns: repeat(2, 1fr); }
+  header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .target-banner { flex-wrap: wrap; }
+  .target-inputs { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+<div class="bg-glow bg-glow-3"></div>
+<div class="wrapper">
+  <header>
+    <div class="logo">
+      <div class="logo-main">KAWARA STUDIO</div>
+      <div class="logo-sub">Batch Audio Processor · v5.0.0</div>
+    </div>
+    <div class="header-right">
+      <div class="badge">Multi-Source · ZIP Export</div>
+      <div class="badge" style="background:var(--accent2-dim);color:var(--accent2);border-color:rgba(0,255,200,0.2);">Auto + Fallback</div>
+    </div>
+  </header>
+
+  <!-- TARGET DURATION -->
+  <div class="target-banner">
+    <div class="target-icon">🎯</div>
+    <div class="target-info">
+      <div class="target-label">Target Durasi Output</div>
+      <div class="target-val" id="targetDisplay">7:00</div>
+    </div>
+    <div class="target-inputs">
+      <input type="number" class="target-inp" id="tMin" value="7" min="1" max="60">
+      <span class="target-sep">:</span>
+      <input type="number" class="target-inp" id="tSec" value="0" min="0" max="59">
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="input-tabs">
+    <button class="tab-btn active" id="tabLink" onclick="switchTab('link')">🔗 Input Link</button>
+    <button class="tab-btn" id="tabUpload" onclick="switchTab('upload')">📁 Upload File</button>
+  </div>
+
+  <!-- LINK PANEL -->
+  <div id="panelLink">
+
+    <!-- HOW TO USE -->
+    <div class="howto-box">
+      <div class="howto-title">💡 Cara Pakai Tab Ini</div>
+      <div class="howto-steps">
+        <div class="howto-step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            Paste link YouTube atau TikTok lalu klik <em>+ Tambah</em> — app otomatis coba ambil audio.
+            <small>App mencoba beberapa server secara otomatis (bisa 10–30 detik)</small>
+          </div>
+        </div>
+        <div class="howto-step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            Kalau status jadi <em style="color:var(--accent2)">✓ Siap</em>, langsung klik Proses. Selesai!
+            <small>Audio berhasil diambil dan siap di-pitch</small>
+          </div>
+        </div>
+        <div class="howto-step">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            Kalau status <em style="color:var(--danger)">✗ Gagal</em>, akan muncul tombol <em>Buka di Cobalt</em> — klik, download MP3-nya, lalu upload ke tab <em>📁 Upload File</em>.
+            <small>Fallback manual ini 100% berhasil karena kamu download langsung</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="link-panel">
+      <div class="link-input-row">
+        <input type="text" class="link-input" id="linkInput" placeholder="Paste link YouTube / TikTok lalu Enter...">
+        <button class="link-add-btn" onclick="addLinkFromInput()">+ Tambah</button>
+      </div>
+      <div class="platform-hints">
+        <span class="platform-badge yt">▶ YouTube</span>
+        <span class="platform-badge tt">♪ TikTok</span>
+        <span class="platform-badge sc">☁ SoundCloud</span>
+        <span class="platform-badge">Enter untuk tambah cepat</span>
+      </div>
+      <div class="link-queue" id="linkQueue"></div>
+    </div>
+
+    <!-- FALLBACK PANEL: muncul kalau ada error -->
+    <div class="fallback-panel" id="fallbackPanel">
+      <div class="fallback-title">⚠ Beberapa Link Gagal — Gunakan Cara Manual</div>
+      <div class="fallback-steps">
+        <b>1.</b> Klik tombol di bawah sesuai platform link yang gagal<br>
+        <b>2.</b> Di halaman cobalt.tools: paste link, pilih format <code>MP3</code>, klik Download<br>
+        <b>3.</b> File MP3 tersimpan di folder Downloads kamu<br>
+        <b>4.</b> Klik tab <code>📁 Upload File</code> di atas, lalu upload file tadi
+      </div>
+      <div class="fallback-btns" id="fallbackBtns"></div>
+    </div>
+  </div>
+
+  <!-- UPLOAD PANEL -->
+  <div id="panelUpload" style="display:none">
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="file-input" accept="audio/*" multiple>
+      <div class="upload-icon">🎵</div>
+      <div class="upload-title">Upload Banyak Audio Sekaligus</div>
+      <div class="upload-sub">Drag & drop atau <span>klik untuk pilih file</span></div>
+      <div class="upload-sub" style="margin-top:6px">MP3, WAV, AAC, OGG, M4A · Multi-file</div>
+    </div>
+    <div class="file-list" id="fileList"></div>
+  </div>
+
+  <div class="section-label">Ringkasan Batch</div>
+  <div class="batch-summary">
+    <div class="summary-card"><div class="summary-val" id="totalFiles">0</div><div class="summary-lbl">Total File</div></div>
+    <div class="summary-card"><div class="summary-val" id="totalTarget">7:00</div><div class="summary-lbl">Target Durasi</div></div>
+    <div class="summary-card"><div class="summary-val" id="estBitrate">128</div><div class="summary-lbl">Bitrate kbps</div></div>
+    <div class="summary-card"><div class="summary-val" id="estZipSize">—</div><div class="summary-lbl">Est. ZIP MB</div></div>
+  </div>
+
+  <button class="process-btn" id="processBtn" disabled>⚡ PROSES SEMUA & EXPORT ZIP</button>
+
+  <div class="overall-progress" id="overallProgress">
+    <div class="prog-header">
+      <span class="prog-label" id="progLabel">Memproses...</span>
+      <span class="prog-pct" id="progPct">0%</span>
+    </div>
+    <div class="prog-bar-bg"><div class="prog-bar-fill" id="progFill"></div></div>
+    <div class="prog-status" id="progStatus">MENYIAPKAN</div>
+    <div class="prog-current-file" id="progCurrentFile"></div>
+  </div>
+
+  <div class="result-wrap" id="resultWrap">
+    <div class="result-title">✅ ZIP SIAP DOWNLOAD</div>
+    <div class="result-stats" id="resultStats"></div>
+    <div class="track-list-title">Daftar Track & Kecepatan</div>
+    <div class="track-list" id="trackList"></div>
+    <button class="download-btn" id="downloadBtn">⬇ DOWNLOAD ZIP — KAWARASTUDIO-AUDIO</button>
+    <div class="zip-structure" id="zipStructure"></div>
+  </div>
+
+  <footer>
+    <div class="credit">Built by <span>KAWARA STUDIO</span></div>
+    <div class="version">v5.0.0 · Auto + Manual Fallback</div>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const MAX_MB = 20;
+const BITRATE_STEPS = [320, 256, 192, 128, 96, 64, 48, 32];
+
+let uploadedEntries = [];
+let linkEntries = [];
+let zipBlob = null;
+let audioCtx = null;
+let activeTab = 'link';
+
+// ============================================================
+// COBALT INSTANCES — daftar server publik untuk auto-try
+// ============================================================
+const COBALT_INSTANCES_DEFAULT = [
+  'https://cobalt.private.coffee',
+  'https://cobalt.api.bm-dev.top',
+  'https://cobalt.ness.su',
+  'https://cob.frpl.uk',
+  'https://cobalt.tools.superbox.us',
+  'https://cobalt.0x7f.one',
+  'https://co.wuk.sh',
+];
+
+let cobaltInstancesReady = false;
+let cobaltInstanceList = [...COBALT_INSTANCES_DEFAULT];
+
+async function loadCobaltInstances() {
+  try {
+    const r = await fetch('https://instances.cobalt.best/api/instances.json', { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('list failed');
+    const data = await r.json();
+    const good = data
+      .filter(i => i.online && i.info?.cors && !i.info?.auth && (i.score||0) > 40)
+      .sort((a,b) => (b.score||0)-(a.score||0))
+      .slice(0, 10)
+      .map(i => `${i.protocol||'https'}://${i.api}`);
+    if (good.length > 0) { cobaltInstanceList = good; console.log('Cobalt instances:', cobaltInstanceList); }
+  } catch(e) { console.warn('Instances fallback:', e.message); }
+  cobaltInstancesReady = true;
+}
+loadCobaltInstances();
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabLink').classList.toggle('active', tab==='link');
+  document.getElementById('tabUpload').classList.toggle('active', tab==='upload');
+  document.getElementById('panelLink').style.display = tab==='link' ? 'block' : 'none';
+  document.getElementById('panelUpload').style.display = tab==='upload' ? 'block' : 'none';
+  refreshSummary();
+}
+
+// ============================================================
+// TARGET
+// ============================================================
+const tMinEl = document.getElementById('tMin');
+const tSecEl = document.getElementById('tSec');
+function getTargetSecs() { return (parseInt(tMinEl.value)||7)*60+(parseInt(tSecEl.value)||0); }
+function updateTargetDisplay() {
+  const m=parseInt(tMinEl.value)||0, s=parseInt(tSecEl.value)||0;
+  document.getElementById('targetDisplay').textContent = m+':'+String(s).padStart(2,'0');
+  refreshSummary();
+}
+tMinEl.addEventListener('input', updateTargetDisplay);
+tSecEl.addEventListener('input', updateTargetDisplay);
+
+// ============================================================
+// LINK INPUT
+// ============================================================
+document.getElementById('linkInput').addEventListener('keydown', e => { if(e.key==='Enter') addLinkFromInput(); });
+
+function detectPlatform(url) {
+  if (/youtube\.com|youtu\.be/i.test(url)) return { name:'YouTube', icon:'▶', class:'yt', cobaltUrl: url };
+  if (/tiktok\.com/i.test(url)) return { name:'TikTok', icon:'♪', class:'tt', cobaltUrl: url };
+  if (/soundcloud\.com/i.test(url)) return { name:'SoundCloud', icon:'☁', class:'sc', cobaltUrl: url };
+  return { name:'Link', icon:'🔗', class:'', cobaltUrl: url };
+}
+function isValidUrl(s) { try { new URL(s); return true; } catch { return false; } }
+
+function addLinkFromInput() {
+  const val = document.getElementById('linkInput').value.trim();
+  if (!val) return;
+  if (!isValidUrl(val)) { showToast('URL tidak valid. Pastikan dimulai dengan https://','error'); return; }
+  const plat = detectPlatform(val);
+  const entry = {
+    id: Date.now()+Math.random(),
+    url: val, platform: plat, title: val,
+    status: 'waiting', audioBuffer: null, duration: 0, blob: null, speed: 0,
+  };
+  linkEntries.push(entry);
+  renderLinkItem(entry);
+  document.getElementById('linkInput').value = '';
+  refreshSummary(); updateProcessBtn();
+  fetchAudioFromLink(entry);
+}
+
+// ============================================================
+// COBALT API — coba satu instance
+// ============================================================
+async function tryCobaltInstance(instanceUrl, mediaUrl) {
+  const body = {
+    url: mediaUrl,
+    downloadMode: 'audio',
+    audioFormat: 'mp3',
+    audioBitrate: '128',
+    filenameStyle: 'basic',
+    disableMetadata: false,
+  };
+  const resp = await fetch(instanceUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!resp.ok) {
+    const t = await resp.text().catch(()=>'');
+    throw new Error(`HTTP ${resp.status}: ${t.substring(0,80)}`);
+  }
+  const data = await resp.json();
+  return data;
+}
+
+async function resolveAudioUrl(mediaUrl, onStatus) {
+  if (!cobaltInstancesReady) {
+    onStatus('Memuat daftar server...');
+    await new Promise(r=>setTimeout(r,2500));
+  }
+  const instances = cobaltInstanceList.length>0 ? cobaltInstanceList : COBALT_INSTANCES_DEFAULT;
+  let lastError = null;
+  for (let i=0; i<instances.length; i++) {
+    const inst = instances[i];
+    onStatus(`Mencoba server ${i+1}/${instances.length}...`);
+    try {
+      const data = await tryCobaltInstance(inst, mediaUrl);
+      let audioUrl=null, title=null;
+      if (data.status==='tunnel'||data.status==='redirect'||data.status==='stream') {
+        audioUrl=data.url; title=data.filename||data.title||null;
+      } else if (data.status==='picker') {
+        const item=(data.picker||[]).find(p=>p.type==='audio')||(data.picker||[])[0];
+        if (item?.url) { audioUrl=item.url; title=data.title||null; }
+      } else if (data.status==='error') {
+        throw new Error(`Cobalt: ${data.error?.code||'unknown'}`);
+      } else {
+        throw new Error(`Status tidak dikenal: ${data.status}`);
+      }
+      if (!audioUrl) throw new Error('Tidak ada URL audio dari server ini');
+      return { audioUrl, title, instance: inst };
+    } catch(err) {
+      console.warn(`${inst} gagal:`, err.message);
+      lastError = err;
+    }
+  }
+  throw new Error(`Semua server gagal. Error: ${lastError?.message||'unknown'}`);
+}
+
+// ============================================================
+// FETCH AUDIO FROM LINK
+// Otomatis dulu. Kalau gagal → tampilkan fallback panel
+// ============================================================
+async function fetchAudioFromLink(entry) {
+  entry.status = 'fetching';
+  updateLinkItem(entry, 'fetch', `<span class="spin">⟳</span> Menghubungi server...`);
+
+  try {
+    const { audioUrl, title } = await resolveAudioUrl(entry.url, (msg) => {
+      updateLinkItem(entry, 'fetch', `<span class="spin">⟳</span> ${msg}`);
+    });
+
+    if (title) { entry.title = cleanTitle(title); updateLinkTitle(entry); }
+    updateLinkItem(entry, 'fetch', `<span class="spin">⟳</span> Mengunduh audio...`);
+
+    let arrayBuffer;
+    try {
+      const audioResp = await fetch(audioUrl, { signal: AbortSignal.timeout(90000) });
+      if (!audioResp.ok) throw new Error('HTTP ' + audioResp.status);
+      arrayBuffer = await audioResp.arrayBuffer();
+    } catch(fetchErr) {
+      throw new Error('Download gagal (CORS/network): ' + fetchErr.message);
+    }
+
+    if (!arrayBuffer || arrayBuffer.byteLength===0) throw new Error('Audio kosong/tidak valid');
+
+    updateLinkItem(entry, 'fetch', `<span class="spin">⟳</span> Mendecode audio...`);
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const buf = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+
+    entry.audioBuffer = buf;
+    entry.duration = buf.duration;
+    entry.speed = buf.duration / getTargetSecs();
+    entry.status = 'ready';
+    updateLinkItem(entry, 'ready', '✓ Siap');
+    updateLinkTitle(entry);
+    refreshSummary(); updateProcessBtn();
+    showToast(`"${entry.title}" siap diproses!`, 'success');
+
+  } catch(err) {
+    console.error('Link fetch error:', err);
+    entry.status = 'error';
+    entry.errorMsg = err.message;
+    // Tampilkan status error + tombol manual fallback
+    updateLinkItem(entry, 'error', '✗ Gagal — lihat panduan di bawah');
+    // Munculkan fallback panel
+    showFallbackPanel(entry);
+    showToast('Auto gagal — pakai tombol Fallback Manual di bawah', 'warn');
+    updateProcessBtn();
+  }
+}
+
+function cleanTitle(str) {
+  return str.replace(/\.[^.]+$/,'').replace(/[_\-]+/g,' ').replace(/\s+/g,' ').trim().substring(0,80);
+}
+
+// ============================================================
+// FALLBACK PANEL — tampil saat ada link error
+// ============================================================
+function showFallbackPanel(entry) {
+  const panel = document.getElementById('fallbackPanel');
+  panel.classList.add('show');
+  const btns = document.getElementById('fallbackBtns');
+
+  // Cek apakah tombol untuk URL ini sudah ada
+  const existingId = 'fbtn-' + entry.id;
+  if (document.getElementById(existingId)) return;
+
+  const plat = entry.platform;
+  let cobaltLink = 'https://cobalt.tools/#' + encodeURIComponent(entry.url);
+
+  // Buat tombol buka cobalt
+  const a = document.createElement('a');
+  a.id = existingId;
+  a.href = cobaltLink;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.className = 'cobalt-btn ' + (plat.class||'');
+  a.innerHTML = `${plat.icon} Buka di Cobalt — ${plat.name}`;
+  a.title = entry.url;
+  btns.appendChild(a);
+
+  // Tombol switch ke upload tab untuk kemudahan
+  if (!document.getElementById('fbtn-goto-upload')) {
+    const b = document.createElement('button');
+    b.id = 'fbtn-goto-upload';
+    b.className = 'cobalt-btn';
+    b.innerHTML = '📁 Buka Tab Upload';
+    b.onclick = () => { switchTab('upload'); showToast('Upload file MP3 yang sudah didownload', ''); };
+    btns.appendChild(b);
+  }
+}
+
+// ============================================================
+// LINK QUEUE UI
+// ============================================================
+function renderLinkItem(entry) {
+  const div = document.createElement('div');
+  div.className = 'link-item';
+  div.id = 'link-' + entry.id;
+  div.innerHTML = `
+    <div class="link-item-progress" id="lp-${entry.id}" style="width:0%"></div>
+    <div class="link-platform-icon">${entry.platform.icon}</div>
+    <div class="link-item-info">
+      <div class="link-title" id="ltitle-${entry.id}">${entry.title}</div>
+      <div class="link-url">${entry.url}</div>
+    </div>
+    <span class="link-status-badge lsb-wait" id="lstatus-${entry.id}">Menunggu</span>
+    <button class="link-remove" onclick="removeLinkEntry('${entry.id}')">✕</button>
+  `;
+  document.getElementById('linkQueue').appendChild(div);
+}
+
+function updateLinkItem(entry, statusClass, labelHtml) {
+  const statusEl = document.getElementById('lstatus-'+entry.id);
+  if (!statusEl) return;
+  statusEl.className = 'link-status-badge lsb-'+statusClass;
+  statusEl.innerHTML = labelHtml;
+  const row = document.getElementById('link-'+entry.id);
+  if (row) {
+    row.style.borderColor = statusClass==='ready' ? 'rgba(0,255,200,0.3)'
+      : statusClass==='done' ? 'rgba(0,255,200,0.4)'
+      : statusClass==='error' ? 'rgba(255,68,68,0.3)'
+      : 'rgba(200,255,0,0.2)';
+  }
+}
+function updateLinkTitle(entry) {
+  const el = document.getElementById('ltitle-'+entry.id);
+  if (el) el.textContent = entry.title||entry.url;
+}
+function setLinkProgress(entry, pct) {
+  const el = document.getElementById('lp-'+entry.id);
+  if (el) el.style.width = pct+'%';
+}
+function removeLinkEntry(id) {
+  linkEntries = linkEntries.filter(e=>e.id!=id);
+  const el = document.getElementById('link-'+id);
+  if (el) el.remove();
+  // Hapus tombol fallback terkait
+  const fbtn = document.getElementById('fbtn-'+id);
+  if (fbtn) fbtn.remove();
+  // Sembunyikan fallback panel jika tidak ada error lagi
+  const errored = linkEntries.filter(e=>e.status==='error');
+  if (errored.length===0) {
+    document.getElementById('fallbackPanel').classList.remove('show');
+    document.getElementById('fallbackBtns').innerHTML='';
+  }
+  refreshSummary(); updateProcessBtn();
+}
+
+// ============================================================
+// UPLOAD TAB
+// ============================================================
+const uploadZone = document.getElementById('uploadZone');
+const fileInputEl = document.getElementById('file-input');
+uploadZone.addEventListener('click', ()=>fileInputEl.click());
+uploadZone.addEventListener('dragover', e=>{e.preventDefault();uploadZone.classList.add('drag-over');});
+uploadZone.addEventListener('dragleave', ()=>uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e=>{
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  addUploadFiles(Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('audio/')));
+});
+fileInputEl.addEventListener('change', ()=>addUploadFiles(Array.from(fileInputEl.files)));
+
+async function addUploadFiles(newFiles) {
+  if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  for (const f of newFiles) {
+    const entry = { id:Date.now()+Math.random(), file:f, title:f.name.replace(/\.[^.]+$/,''), audioBuffer:null, duration:0, speed:0, status:'loading', blob:null };
+    uploadedEntries.push(entry);
+    renderFileRow(entry);
+    try {
+      const arr = await f.arrayBuffer();
+      const buf = await audioCtx.decodeAudioData(arr);
+      entry.audioBuffer=buf; entry.duration=buf.duration;
+      entry.speed=buf.duration/getTargetSecs();
+      entry.status=(entry.speed>=0.25&&entry.speed<=8.0)?'ready':'badspeed';
+      updateFileRow(entry);
+    } catch(e) { entry.status='error'; updateFileRow(entry); }
+    refreshSummary(); updateProcessBtn();
+  }
+}
+
+function renderFileRow(entry) {
+  const div = document.createElement('div');
+  div.className='file-row'; div.id='frow-'+entry.id;
+  div.innerHTML=`
+    <div class="file-row-progress" id="fprog-${entry.id}" style="width:0%"></div>
+    <div class="file-icon2">🎵</div>
+    <div class="file-info2">
+      <div class="file-name2">${entry.title}</div>
+      <div class="file-meta2" id="fmeta-${entry.id}">${formatBytes(entry.file.size)} · Memuat...</div>
+    </div>
+    <div class="file-speed-badge" id="fspeed-${entry.id}">—×</div>
+    <div class="file-status wait" id="fstatus-${entry.id}">Memuat</div>
+    <button class="file-remove-btn" onclick="removeUploadEntry('${entry.id}')">✕</button>
+  `;
+  document.getElementById('fileList').appendChild(div);
+}
+function updateFileRow(entry) {
+  const row=document.getElementById('frow-'+entry.id);
+  const meta=document.getElementById('fmeta-'+entry.id);
+  const speedEl=document.getElementById('fspeed-'+entry.id);
+  const statusEl=document.getElementById('fstatus-'+entry.id);
+  if (!row) return;
+  const sizeStr=formatBytes(entry.file.size), durStr=formatTime(entry.duration);
+  if (entry.status==='ready') {
+    row.className='file-row ready'; meta.textContent=sizeStr+' · '+durStr;
+    speedEl.textContent=entry.speed.toFixed(2)+'×'; statusEl.className='file-status wait'; statusEl.textContent='Siap';
+  } else if (entry.status==='badspeed') {
+    row.className='file-row error'; meta.textContent=sizeStr+' · '+durStr+' (speed out of range)';
+    speedEl.textContent=entry.speed.toFixed(2)+'×'; statusEl.className='file-status err'; statusEl.textContent='Skip';
+  } else if (entry.status==='processing') {
+    row.className='file-row processing'; statusEl.className='file-status proc'; statusEl.textContent='Proses...';
+  } else if (entry.status==='done') {
+    row.className='file-row done'; statusEl.className='file-status ok'; statusEl.textContent='✓ Done';
+    document.getElementById('fprog-'+entry.id).style.width='100%';
+  } else if (entry.status==='error') {
+    row.className='file-row error'; meta.textContent=sizeStr+' · Gagal decode'; statusEl.className='file-status err'; statusEl.textContent='Error';
+  }
+}
+function removeUploadEntry(id) {
+  uploadedEntries=uploadedEntries.filter(e=>e.id!=id);
+  const el=document.getElementById('frow-'+id); if(el) el.remove();
+  refreshSummary(); updateProcessBtn();
+}
+
+// ============================================================
+// SUMMARY & HELPERS
+// ============================================================
+function getAllReadyEntries() {
+  return [...linkEntries.filter(e=>e.status==='ready'), ...uploadedEntries.filter(e=>e.status==='ready')];
+}
+function refreshSummary() {
+  const ready=getAllReadyEntries(), tSecs=getTargetSecs();
+  const tM=Math.floor(tSecs/60), tS=tSecs%60;
+  document.getElementById('totalFiles').textContent=ready.length;
+  document.getElementById('totalTarget').textContent=tM+':'+String(tS).padStart(2,'0');
+  const br=calcBitrate(tSecs);
+  document.getElementById('estBitrate').textContent=br;
+  const totalMB=ready.reduce((sum)=>sum+estimateSize(tSecs,br),0);
+  document.getElementById('estZipSize').textContent=ready.length>0?totalMB.toFixed(1)+' MB':'—';
+}
+function updateProcessBtn() {
+  document.getElementById('processBtn').disabled=getAllReadyEntries().length===0;
+}
+function calcBitrate(durationSecs) {
+  const maxBits=MAX_MB*1024*1024*8, idealKbps=maxBits/durationSecs/1000;
+  for (const b of BITRATE_STEPS) { if(b<=idealKbps) return b; }
+  return 32;
+}
+function estimateSize(durationSecs,bitrateKbps) { return (bitrateKbps*1000*durationSecs)/8/(1024*1024); }
+function formatTime(secs) { secs=Math.floor(secs||0); return Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'); }
+function formatBytes(bytes) { return bytes<1048576?(bytes/1024).toFixed(1)+' KB':(bytes/1048576).toFixed(1)+' MB'; }
+function tick(ms=20) { return new Promise(r=>setTimeout(r,ms)); }
+let toastTimer;
+function showToast(msg,type='') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+type;
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),4500);
+}
+function setOverallProgress(pct,label,status,currentFile='') {
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progPct').textContent=Math.round(pct)+'%';
+  if(label) document.getElementById('progLabel').textContent=label;
+  if(status) document.getElementById('progStatus').textContent=status.toUpperCase();
+  document.getElementById('progCurrentFile').textContent=currentFile;
+}
+function getNormalSpeed(speed) { return (1/speed).toFixed(6).substring(0,4); }
+function makeFileName(title,speed) {
+  const normalSpeed=getNormalSpeed(speed), speedStr=speed.toFixed(2);
+  const safeTitle=title.replace(/[\\/:*?"<>|]/g,'_').substring(0,60);
+  return `${safeTitle} - X${speedStr} [N${normalSpeed}].mp3`;
+}
+
+// ============================================================
+// ENCODE MP3
+// ============================================================
+function encodeLameMp3(audioBuffer, bitrateKbps, onProgress) {
+  return new Promise((resolve,reject) => {
+    try {
+      const sampleRate=audioBuffer.sampleRate, numChannels=audioBuffer.numberOfChannels;
+      const leftData=audioBuffer.getChannelData(0);
+      const rightData=numChannels>1?audioBuffer.getChannelData(1):leftData;
+      const channels=numChannels>1?2:1;
+      const mp3enc=new lamejs.Mp3Encoder(channels,sampleRate,bitrateKbps);
+      const CHUNK=1152, BATCH=60;
+      const totalChunks=Math.ceil(leftData.length/CHUNK);
+      const mp3Data=[]; let chunkIdx=0;
+      function floatToInt16(arr,offset,len) {
+        const out=new Int16Array(len);
+        for(let i=0;i<len;i++){const s=Math.max(-1,Math.min(1,arr[offset+i]||0));out[i]=s<0?s*0x8000:s*0x7FFF;}
+        return out;
+      }
+      function nextBatch() {
+        const end=Math.min(chunkIdx+BATCH,totalChunks);
+        for(let c=chunkIdx;c<end;c++){
+          const off=c*CHUNK, len=Math.min(CHUNK,leftData.length-off);
+          const L=floatToInt16(leftData,off,len), R=floatToInt16(rightData,off,len);
+          const enc=channels===2?mp3enc.encodeBuffer(L,R):mp3enc.encodeBuffer(L);
+          if(enc.length>0) mp3Data.push(new Int8Array(enc));
+        }
+        chunkIdx=end;
+        if(onProgress) onProgress(chunkIdx/totalChunks);
+        if(chunkIdx<totalChunks){setTimeout(nextBatch,0);}
+        else {
+          const flushed=mp3enc.flush();
+          if(flushed.length>0) mp3Data.push(new Int8Array(flushed));
+          resolve(new Blob(mp3Data,{type:'audio/mpeg'}));
+        }
+      }
+      nextBatch();
+    } catch(e){reject(e);}
+  });
+}
+
+// ============================================================
+// PROCESS ONE ENTRY
+// ============================================================
+async function processOneEntry(entry,targetSecs,bitrateKbps,onFileProgress) {
+  const buf=entry.audioBuffer;
+  const speed=entry.duration/targetSecs;
+  const numChannels=buf.numberOfChannels, sampleRate=buf.sampleRate;
+  const outSamples=Math.ceil(targetSecs*sampleRate);
+  const offCtx=new OfflineAudioContext(numChannels,outSamples,sampleRate);
+  const src=offCtx.createBufferSource();
+  src.buffer=buf; src.playbackRate.value=speed; src.connect(offCtx.destination); src.start(0);
+  const rendered=await offCtx.startRendering();
+  const blob=await encodeLameMp3(rendered,bitrateKbps,onFileProgress);
+  entry.blob=blob; entry.speed=speed; entry.status='done';
+  return blob;
+}
+
+// ============================================================
+// PROCESS ALL → ZIP
+// ============================================================
+document.getElementById('processBtn').addEventListener('click', async () => {
+  const ready=getAllReadyEntries();
+  if(ready.length===0) return;
+  document.getElementById('processBtn').disabled=true;
+  document.getElementById('resultWrap').classList.remove('show');
+  document.getElementById('overallProgress').classList.add('show');
+  zipBlob=null;
+  const targetSecs=getTargetSecs(), bitrateKbps=calcBitrate(targetSecs);
+  setOverallProgress(0,'Memulai batch...','Menyiapkan','');
+  await tick();
+  const zip=new JSZip();
+  const rootFolder=zip.folder('KAWARASTUDIO - AUDIO');
+  const pitchFolder=rootFolder.folder('PITCH - SOUND');
+  const doneEntries=[];
+  for(let i=0;i<ready.length;i++){
+    const entry=ready[i];
+    const fileNum=i+1, speed=entry.duration/targetSecs;
+    const fileName=makeFileName(entry.title,speed);
+    if(document.getElementById('link-'+entry.id)) updateLinkItem(entry,'proc',`<span class="spin">⟳</span> Proses...`);
+    else if(document.getElementById('frow-'+entry.id)){entry.status='processing';updateFileRow(entry);}
+    setOverallProgress((i/ready.length)*100,`File ${fileNum}/${ready.length}`,'Encoding MP3',entry.title);
+    await tick();
+    try {
+      const blob=await processOneEntry(entry,targetSecs,bitrateKbps,(pct)=>{
+        const base=(i/ready.length)*100, step=(1/ready.length)*100;
+        setOverallProgress(base+pct*step*0.92,`File ${fileNum}/${ready.length}`,`Encoding ${Math.round(pct*100)}%`,entry.title);
+        if(document.getElementById('lp-'+entry.id)) setLinkProgress(entry,pct*100);
+        if(document.getElementById('fprog-'+entry.id)) document.getElementById('fprog-'+entry.id).style.width=(pct*100)+'%';
+      });
+      const arrBuf=await blob.arrayBuffer();
+      pitchFolder.file(fileName,arrBuf);
+      if(document.getElementById('link-'+entry.id)){updateLinkItem(entry,'done','✓ Done');setLinkProgress(entry,100);}
+      else {entry.status='done';updateFileRow(entry);}
+      doneEntries.push({...entry,speed,fileName});
+    } catch(err){
+      console.error('Process error:',err);
+      if(document.getElementById('link-'+entry.id)) updateLinkItem(entry,'error','✗ Error');
+      else {entry.status='error';updateFileRow(entry);}
+    }
+    await tick();
+  }
+  setOverallProgress(95,'Membuat ZIP...','Compressing','');
+  await tick();
+  const zipContent=await zip.generateAsync({type:'blob',compression:'STORE'});
+  zipBlob=zipContent;
+  setOverallProgress(100,'Selesai!','ZIP Siap!','');
+  await tick(400);
+  document.getElementById('overallProgress').classList.remove('show');
+  showFinalResult(doneEntries,bitrateKbps,targetSecs,zipContent.size);
+  document.getElementById('processBtn').disabled=false;
+  updateProcessBtn();
+});
+
+// ============================================================
+// SHOW RESULT
+// ============================================================
+function showFinalResult(doneEntries,bitrateKbps,targetSecs,zipBytes) {
+  const tM=Math.floor(targetSecs/60), tS=targetSecs%60;
+  const targetStr=tM+':'+String(tS).padStart(2,'0');
+  const sizeMB=(zipBytes/(1024*1024)).toFixed(1);
+  document.getElementById('resultStats').innerHTML=`
+    <div class="stat-card"><div class="stat-val">${doneEntries.length}</div><div class="stat-lbl">Track Berhasil</div></div>
+    <div class="stat-card"><div class="stat-val">${targetStr}</div><div class="stat-lbl">Durasi Target</div></div>
+    <div class="stat-card"><div class="stat-val">${bitrateKbps}</div><div class="stat-lbl">Bitrate kbps</div></div>
+    <div class="stat-card"><div class="stat-val">${sizeMB}</div><div class="stat-lbl">ZIP Ukuran MB</div></div>
+  `;
+  const trackListEl=document.getElementById('trackList');
+  trackListEl.innerHTML='';
+  doneEntries.forEach((e,idx)=>{
+    const div=document.createElement('div');
+    div.className='track-item';
+    div.innerHTML=`<span class="track-num">${idx+1}</span><span class="track-name">${e.title}</span><span class="track-speed-display">X${e.speed.toFixed(2)}</span><span class="track-normal-speed">N${getNormalSpeed(e.speed)}</span>`;
+    trackListEl.appendChild(div);
+  });
+  const fileLines=doneEntries.slice(0,3).map(e=>`    &nbsp;&nbsp;&nbsp;📄 <span class="file">${e.fileName}</span>`).join('<br>');
+  const moreLines=doneEntries.length>3?`<br>    &nbsp;&nbsp;&nbsp;<span style="color:var(--muted2)">...dan ${doneEntries.length-3} file lainnya</span>`:'';
+  document.getElementById('zipStructure').innerHTML=`
+    📦 <span class="folder">KAWARASTUDIO - AUDIO.zip</span><br>
+    └── 📁 <span class="folder">KAWARASTUDIO - AUDIO/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;└── 📁 <span class="folder">PITCH - SOUND/</span><br>
+    ${fileLines}${moreLines}<br><br>
+    <span style="color:var(--muted2);font-size:10px">Format nama: JUDUL - X[kecepatan] [N=1/kecepatan].mp3</span>
+  `;
+  document.getElementById('downloadBtn').textContent=`⬇ DOWNLOAD ZIP — KAWARASTUDIO-AUDIO (${sizeMB} MB)`;
+  document.getElementById('resultWrap').classList.add('show');
+  showToast(`✓ ${doneEntries.length} track selesai! ZIP ${sizeMB} MB siap.`,'success');
+}
+
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  if(!zipBlob) return showToast('ZIP belum siap!','error');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(zipBlob);
+  a.download='KAWARASTUDIO - AUDIO.zip';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  showToast('Download dimulai ✓','success');
+});
+
+// INIT
+updateTargetDisplay();
+refreshSummary();
+</script>
+</body>
+</html>
