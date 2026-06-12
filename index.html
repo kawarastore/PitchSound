@@ -356,7 +356,7 @@ async function addUploadFiles(newFiles) {
       entry.audioBuffer = buf;
       entry.duration = buf.duration;
       entry.speed = buf.duration / getTargetSecs();
-      entry.status = (entry.speed >= 1.0 && entry.speed <= 2.0) ? 'ready' : 'badspeed';
+      entry.status = 'ready';
       updateFileRow(entry);
     } catch(e) {
       entry.status = 'error';
@@ -819,7 +819,7 @@ function applySpeedPreset(speedMultiplier) {
   uploadedEntries.forEach(entry => {
     if (entry.audioBuffer) {
       entry.speed = entry.duration / getTargetSecs();
-      entry.status = (entry.speed >= 1.0 && entry.speed <= 2.0) ? 'ready' : 'badspeed';
+      entry.status = 'ready';
       updateFileRow(entry);
     }
   });
