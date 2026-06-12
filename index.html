@@ -804,17 +804,20 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 // ============================================================
 function applySpeedPreset(speedMultiplier) {
   const ready = getAllReadyEntries();
-  let baseDuration = 0;
-  if (ready.length > 0) {
-    baseDuration = ready.reduce((sum, e) => sum + e.duration, 0) / ready.length;
-  } else {
-    baseDuration = getTargetSecs();
+  if (ready.length === 0) {
+    showToast('Upload file dulu sebelum pakai preset!', 'warn');
+    return;
   }
-  const newTarget = Math.round(baseDuration / speedMultiplier);
-  const newMin = Math.floor(newTarget / 60);
-  const newSec = newTarget % 60;
-  tMinEl.value = newMin;
-  tSecEl.value = newSec;
+  // Pakai durasi ORIGINAL tiap file masing-masing, bukan rata-rata
+  uploadedEntries.forEach(entry => {
+    if (entry.audioBuffer) {
+      const newTarget = Math.round(entry.duration / speedMultiplier);
+      const newMin = Math.floor(newTarget / 60);
+      const newSec = newTarget % 60;
+      tMinEl.value = newMin;
+      tSecEl.value = newSec;
+    }
+  });
   updateTargetDisplay();
   uploadedEntries.forEach(entry => {
     if (entry.audioBuffer) {
@@ -825,9 +828,10 @@ function applySpeedPreset(speedMultiplier) {
   });
   refreshSummary();
   updateProcessBtn();
-  showToast(`Preset ×${speedMultiplier} diterapkan → target ${newMin}:${String(newSec).padStart(2,'0')}`, 'success');
+  const tSecs = getTargetSecs();
+  const tM = Math.floor(tSecs / 60), tS = tSecs % 60;
+  showToast(`Preset ×${speedMultiplier} → target ${tM}:${String(tS).padStart(2,'0')}`, 'success');
 }
-
 // ============================================================
 // INIT
 // ============================================================
