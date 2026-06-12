@@ -47,13 +47,17 @@ header { display: flex; align-items: center; justify-content: space-between; mar
 .target-inp:focus { border-color: var(--accent); }
 .target-sep { font-family: var(--mono); color: var(--muted); font-size: 22px; }
 
-/* Max Duration Banner */
-.maxdur-banner { background: var(--surface); border: 1px solid rgba(255,68,102,0.25); border-radius: 16px; padding: 14px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px; }
-.maxdur-icon { font-size: 20px; flex-shrink: 0; }
-.maxdur-info { flex: 1; }
-.maxdur-title { font-size: 13px; font-weight: 700; color: var(--danger); margin-bottom: 3px; }
-.maxdur-desc { font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.6; }
-.maxdur-val { font-family: var(--display); font-size: 26px; color: var(--danger); letter-spacing: 2px; flex-shrink: 0; }
+/* Skip Rules Banner */
+.skiprules-banner { background: var(--surface); border: 1px solid rgba(255,68,102,0.25); border-radius: 16px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 14px; }
+.skiprules-icon { font-size: 20px; flex-shrink: 0; padding-top: 2px; }
+.skiprules-info { flex: 1; }
+.skiprules-title { font-size: 13px; font-weight: 700; color: var(--danger); margin-bottom: 8px; }
+.skiprules-list { display: flex; flex-direction: column; gap: 6px; }
+.skiprule-item { display: flex; align-items: center; gap: 10px; }
+.skiprule-badge { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; min-width: 90px; text-align: center; }
+.skiprule-badge.red { color: var(--danger); background: rgba(255,68,102,0.12); border: 1px solid rgba(255,68,102,0.25); }
+.skiprule-badge.orange { color: var(--warn); background: rgba(255,170,0,0.1); border: 1px solid rgba(255,170,0,0.25); }
+.skiprule-desc { font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.5; }
 
 /* Quality Banner */
 .quality-banner { background: var(--surface); border: 1px solid rgba(0,255,200,0.15); border-radius: 16px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; }
@@ -198,7 +202,7 @@ footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border
   <header>
     <div class="logo">
       <div class="logo-main">KAWARA STUDIO</div>
-      <div class="logo-sub">Batch Audio Processor · v5.1.0</div>
+      <div class="logo-sub">Batch Audio Processor · v5.2.0</div>
     </div>
     <div class="header-right">
       <div class="badge">HQ · Max 20MB · ZIP Export</div>
@@ -220,17 +224,22 @@ footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border
     </div>
   </div>
 
-  <!-- Max Output Duration Warning -->
-  <div class="maxdur-banner">
-    <div class="maxdur-icon">🚫</div>
-    <div class="maxdur-info">
-      <div class="maxdur-title">Auto-Skip: Output &gt; 7 Menit</div>
-      <div class="maxdur-desc">
-        File yang hasil output-nya melebihi <strong>7:00 menit</strong> akan otomatis di-skip saat proses batch.<br>
-        Pastikan target durasi cukup singkat atau gunakan preset kecepatan agar semua file lolos.
+  <!-- Skip Rules Banner -->
+  <div class="skiprules-banner">
+    <div class="skiprules-icon">🚫</div>
+    <div class="skiprules-info">
+      <div class="skiprules-title">Auto-Skip Rules</div>
+      <div class="skiprules-list">
+        <div class="skiprule-item">
+          <span class="skiprule-badge red">Output &gt; 7:00</span>
+          <span class="skiprule-desc">Target durasi terlalu panjang — output akan melebihi 7 menit</span>
+        </div>
+        <div class="skiprule-item">
+          <span class="skiprule-badge orange">N &gt; 2.00</span>
+          <span class="skiprule-desc">Normal speed (N = 1/X) melebihi batas N2.00 — audio diperlambat terlalu ekstrem (&lt;0.5×)</span>
+        </div>
       </div>
     </div>
-    <div class="maxdur-val">7:00</div>
   </div>
 
   <!-- Quality Info -->
@@ -282,8 +291,8 @@ footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border
   <div class="section-label">Ringkasan Batch</div>
   <div class="batch-summary">
     <div class="summary-card"><div class="summary-val" id="totalFiles">0</div><div class="summary-lbl">Total File</div></div>
-    <div class="summary-card"><div class="summary-val" id="totalTarget">7:00</div><div class="summary-lbl">Target Durasi</div></div>
-    <div class="summary-card danger" id="skippedCard" style="display:none"><div class="summary-val" id="totalSkipped">0</div><div class="summary-lbl">Di-Skip (&gt;7min)</div></div>
+    <div class="summary-card"><div class="summary-val" id="totalTarget">3:00</div><div class="summary-lbl">Target Durasi</div></div>
+    <div class="summary-card danger" id="skippedCard" style="display:none"><div class="summary-val" id="totalSkipped">0</div><div class="summary-lbl">Di-Skip</div></div>
     <div class="summary-card" id="bitrateCard"><div class="summary-val" id="estBitrate">—</div><div class="summary-lbl">Bitrate kbps</div></div>
     <div class="summary-card"><div class="summary-val" id="estZipSize">—</div><div class="summary-lbl">Est. ZIP MB</div></div>
   </div>
@@ -313,7 +322,7 @@ footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border
 
   <footer>
     <div class="credit">Built by <span>KAWARA STUDIO</span></div>
-    <div class="version">v5.1.0 · HQ Upload · ZIP Export · Auto-Skip &gt;7min</div>
+    <div class="version">v5.2.0 · HQ Upload · ZIP Export · Skip &gt;7min &amp; N&gt;2.00</div>
   </footer>
 </div>
 <div class="toast" id="toast"></div>
@@ -323,8 +332,8 @@ footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border
 // CONFIG
 // ============================================================
 const MAX_MB = 20;
-// Batas durasi output maksimum — file yang outputnya melebihi ini akan di-skip
-const MAX_OUTPUT_SECS = 7 * 60; // 420 detik = 7 menit
+const MAX_OUTPUT_SECS = 7 * 60; // 420s = 7 menit
+const MAX_NORMAL_SPEED = 2.00;  // N = 1/speed — tidak boleh melebihi ini (berarti speed < 0.5 dilarang)
 const BITRATE_STEPS = [320, 256, 192, 128, 96, 64, 48, 32];
 const OUTPUT_SAMPLE_RATE = 44100;
 
@@ -341,20 +350,35 @@ const tSecEl = document.getElementById('tSec');
 function getTargetSecs() {
   return (parseInt(tMinEl.value) || 3) * 60 + (parseInt(tSecEl.value) || 0);
 }
+
+/**
+ * Tentukan status skip sebuah entry berdasarkan target saat ini.
+ * Returns: 'ready' | 'toolong' | 'tooSlow'
+ *
+ * toolong  → target durasi output > 7 menit
+ * tooSlow  → N = 1/speed > 2.00  (artinya speed < 0.5, audio diperlambat terlalu ekstrem)
+ */
+function computeEntryStatus(entry) {
+  if (!entry.audioBuffer) return 'loading';
+  const targetSecs = getTargetSecs();
+  const speed = entry.duration / targetSecs;
+  const normalSpeed = 1 / speed; // N value
+
+  if (targetSecs > MAX_OUTPUT_SECS) return 'toolong';
+  if (normalSpeed > MAX_NORMAL_SPEED) return 'tooSlow'; // speed < 0.5
+  return 'ready';
+}
+
 function updateTargetDisplay() {
   const m = parseInt(tMinEl.value) || 0, s = parseInt(tSecEl.value) || 0;
   document.getElementById('targetDisplay').textContent = m + ':' + String(s).padStart(2, '0');
-  // Re-validasi semua file yg sudah ada karena target berubah
   uploadedEntries.forEach(entry => {
     if (entry.audioBuffer) {
-      const targetSecs = getTargetSecs();
-      entry.speed = entry.duration / targetSecs;
-      // Cek apakah output melebihi batas 7 menit
-      if (targetSecs > MAX_OUTPUT_SECS) {
-        entry.status = 'toolong';
-      } else if (entry.status === 'toolong') {
-        // Restore ke ready jika sekarang sudah oke
-        entry.status = 'ready';
+      const newStatus = computeEntryStatus(entry);
+      // Hanya update jika tidak sedang/sudah diproses
+      if (!['processing', 'done', 'error'].includes(entry.status)) {
+        entry.status = newStatus;
+        entry.speed = entry.duration / getTargetSecs();
       }
       updateFileRow(entry);
     }
@@ -404,14 +428,8 @@ async function addUploadFiles(newFiles) {
       const buf = await audioCtx.decodeAudioData(arr);
       entry.audioBuffer = buf;
       entry.duration = buf.duration;
-      const targetSecs = getTargetSecs();
-      entry.speed = entry.duration / targetSecs;
-      // Cek batas output duration setelah decode
-      if (targetSecs > MAX_OUTPUT_SECS) {
-        entry.status = 'toolong';
-      } else {
-        entry.status = 'ready';
-      }
+      entry.speed = entry.duration / getTargetSecs();
+      entry.status = computeEntryStatus(entry);
       updateFileRow(entry);
     } catch(e) {
       entry.status = 'error';
@@ -449,55 +467,57 @@ function updateFileRow(entry) {
   const speedEl = document.getElementById('fspeed-' + entry.id);
   const statusEl = document.getElementById('fstatus-' + entry.id);
   if (!row) return;
+
   const sizeStr = formatBytes(entry.file.size);
   const durStr = formatTime(entry.duration);
   const targetSecs = getTargetSecs();
   const br = calcBitrate(targetSecs);
+  const speed = entry.audioBuffer ? entry.duration / targetSecs : 0;
+  const normalSpeed = speed > 0 ? (1 / speed) : 0;
+
+  // Bersihkan skip tag lama
+  const existSkipTag = row.querySelector('.skip-reason');
+  if (existSkipTag) existSkipTag.remove();
 
   if (entry.status === 'ready') {
     row.className = 'file-row ready';
-    meta.textContent = sizeStr + ' · ' + durStr + ' · ' + br + 'kbps';
+    meta.textContent = `${sizeStr} · ${durStr} · ${br}kbps · X${speed.toFixed(2)} · N${normalSpeed.toFixed(2)}`;
     speedEl.className = 'file-speed-badge';
-    speedEl.textContent = entry.speed.toFixed(2) + '×';
+    speedEl.textContent = `X${speed.toFixed(2)}`;
     statusEl.className = 'file-status wait';
     statusEl.textContent = 'Siap';
-    // Hapus skip tag jika ada
-    const existSkipTag = row.querySelector('.skip-reason');
-    if (existSkipTag) existSkipTag.remove();
+
   } else if (entry.status === 'toolong') {
-    // Output akan melebihi 7 menit — ditandai merah dan di-skip saat proses
     row.className = 'file-row skipped';
-    const targetM = Math.floor(targetSecs / 60), targetS = targetSecs % 60;
-    meta.textContent = sizeStr + ' · ' + durStr + ' · Output: ' + targetM + ':' + String(targetS).padStart(2,'0') + ' (>7min)';
+    const outM = Math.floor(targetSecs / 60), outS = targetSecs % 60;
+    meta.textContent = `${sizeStr} · ${durStr} · Output: ${outM}:${String(outS).padStart(2,'0')} (>7min)`;
     speedEl.className = 'file-speed-badge skip';
-    speedEl.textContent = entry.speed.toFixed(2) + '×';
+    speedEl.textContent = `X${speed.toFixed(2)}`;
     statusEl.className = 'file-status skip';
     statusEl.textContent = '⛔ Skip';
-    // Tambah skip reason tag jika belum ada
-    if (!row.querySelector('.skip-reason')) {
-      const tag = document.createElement('span');
-      tag.className = 'skip-reason';
-      tag.textContent = 'Output >7min';
-      // Sisipkan sebelum tombol hapus
-      const removeBtn = row.querySelector('.file-remove-btn');
-      row.insertBefore(tag, removeBtn);
-    }
-  } else if (entry.status === 'badspeed') {
-    row.className = 'file-row error';
-    meta.textContent = sizeStr + ' · ' + durStr + ' (speed out of range)';
-    speedEl.className = 'file-speed-badge';
-    speedEl.textContent = entry.speed.toFixed(2) + '×';
-    statusEl.className = 'file-status err';
-    statusEl.textContent = 'Skip';
+    addSkipTag(row, 'Output >7min');
+
+  } else if (entry.status === 'tooSlow') {
+    // N > 2.00 → speed < 0.5 → diperlambat terlalu ekstrem
+    row.className = 'file-row skipped';
+    meta.textContent = `${sizeStr} · ${durStr} · X${speed.toFixed(2)} · N${normalSpeed.toFixed(2)} (>N2.00)`;
+    speedEl.className = 'file-speed-badge skip';
+    speedEl.textContent = `X${speed.toFixed(2)}`;
+    statusEl.className = 'file-status skip';
+    statusEl.textContent = '⛔ Skip';
+    addSkipTag(row, `N${normalSpeed.toFixed(2)} >2.00`);
+
   } else if (entry.status === 'processing') {
     row.className = 'file-row processing';
     statusEl.className = 'file-status proc';
     statusEl.textContent = 'Proses...';
+
   } else if (entry.status === 'done') {
     row.className = 'file-row done';
     statusEl.className = 'file-status ok';
     statusEl.textContent = '✓ Done';
     document.getElementById('fprog-' + entry.id).style.width = '100%';
+
   } else if (entry.status === 'error') {
     row.className = 'file-row error';
     meta.textContent = sizeStr + ' · Gagal decode';
@@ -505,6 +525,14 @@ function updateFileRow(entry) {
     statusEl.className = 'file-status err';
     statusEl.textContent = 'Error';
   }
+}
+
+function addSkipTag(row, label) {
+  const tag = document.createElement('span');
+  tag.className = 'skip-reason';
+  tag.textContent = label;
+  const removeBtn = row.querySelector('.file-remove-btn');
+  row.insertBefore(tag, removeBtn);
 }
 
 function removeUploadEntry(id) {
@@ -519,27 +547,25 @@ function removeUploadEntry(id) {
 // SUMMARY & HELPERS
 // ============================================================
 function getAllReadyEntries() {
-  // Hanya ambil yang status 'ready' — skip 'toolong'
   return uploadedEntries.filter(e => e.status === 'ready');
 }
 
-function getAllTooLongEntries() {
-  return uploadedEntries.filter(e => e.status === 'toolong');
+function getAllSkippedEntries() {
+  return uploadedEntries.filter(e => e.status === 'toolong' || e.status === 'tooSlow');
 }
 
 function refreshSummary() {
   const ready = getAllReadyEntries();
-  const tooLong = getAllTooLongEntries();
+  const skipped = getAllSkippedEntries();
   const tSecs = getTargetSecs();
   const tM = Math.floor(tSecs / 60), tS = tSecs % 60;
   document.getElementById('totalFiles').textContent = ready.length;
   document.getElementById('totalTarget').textContent = tM + ':' + String(tS).padStart(2, '0');
 
-  // Tampilkan/sembunyikan kartu skip
   const skippedCard = document.getElementById('skippedCard');
-  if (tooLong.length > 0) {
+  if (skipped.length > 0) {
     skippedCard.style.display = '';
-    document.getElementById('totalSkipped').textContent = tooLong.length;
+    document.getElementById('totalSkipped').textContent = skipped.length;
   } else {
     skippedCard.style.display = 'none';
   }
@@ -607,7 +633,7 @@ function getNormalSpeed(speed) {
 function makeFileName(title, speed) {
   const normalSpeed = getNormalSpeed(speed);
   const safeTitle = title.replace(/[\\/:*?"<>|]/g, '_').substring(0, 60);
-  return `${safeTitle} [${normalSpeed}].mp3`;
+  return `${safeTitle} [N${normalSpeed}].mp3`;
 }
 
 // ============================================================
@@ -739,11 +765,15 @@ document.getElementById('processBtn').addEventListener('click', async () => {
 
   const targetSecs = getTargetSecs();
   const bitrateKbps = calcBitrate(targetSecs);
+  const skipped = getAllSkippedEntries();
 
-  // Double-check: skip semua entry yang output > 7 menit (seharusnya sudah filtered di ready)
-  const tooLong = getAllTooLongEntries();
-  if (tooLong.length > 0) {
-    showToast(`${tooLong.length} file di-skip (output >7 menit)`, 'warn');
+  if (skipped.length > 0) {
+    const tooLongCount = skipped.filter(e => e.status === 'toolong').length;
+    const tooSlowCount = skipped.filter(e => e.status === 'tooSlow').length;
+    let msg = [];
+    if (tooLongCount) msg.push(`${tooLongCount} output >7min`);
+    if (tooSlowCount) msg.push(`${tooSlowCount} N>2.00`);
+    showToast(`${skipped.length} file di-skip: ${msg.join(' · ')}`, 'warn');
   }
 
   setOverallProgress(0, 'Memulai batch...', 'Menyiapkan', '');
@@ -753,7 +783,6 @@ document.getElementById('processBtn').addEventListener('click', async () => {
   const rootFolder = zip.folder('KAWARASTUDIO - AUDIO');
   const pitchFolder = rootFolder.folder('PITCH - SOUND');
   const doneEntries = [];
-  const skippedEntries = [...tooLong]; // untuk ditampilkan di hasil
 
   for (let i = 0; i < ready.length; i++) {
     const entry = ready[i];
@@ -799,13 +828,13 @@ document.getElementById('processBtn').addEventListener('click', async () => {
   await tick(400);
 
   document.getElementById('overallProgress').classList.remove('show');
-  showFinalResult(doneEntries, skippedEntries, bitrateKbps, targetSecs, zipContent.size);
+  showFinalResult(doneEntries, skipped, bitrateKbps, targetSecs, zipContent.size);
   document.getElementById('processBtn').disabled = false;
   updateProcessBtn();
 });
 
 // ============================================================
-// SHOW RESULT — termasuk daftar file yang di-skip
+// SHOW RESULT
 // ============================================================
 function showFinalResult(doneEntries, skippedEntries, bitrateKbps, targetSecs, zipBytes) {
   const tM = Math.floor(targetSecs / 60), tS = targetSecs % 60;
@@ -813,7 +842,7 @@ function showFinalResult(doneEntries, skippedEntries, bitrateKbps, targetSecs, z
   const sizeMB = (zipBytes / (1024 * 1024)).toFixed(1);
 
   const skippedHtml = skippedEntries.length > 0
-    ? `<div class="stat-card"><div class="stat-val red">${skippedEntries.length}</div><div class="stat-lbl">Di-Skip (&gt;7min)</div></div>`
+    ? `<div class="stat-card"><div class="stat-val red">${skippedEntries.length}</div><div class="stat-lbl">Di-Skip</div></div>`
     : '';
 
   document.getElementById('resultStats').innerHTML = `
@@ -827,36 +856,40 @@ function showFinalResult(doneEntries, skippedEntries, bitrateKbps, targetSecs, z
   const trackListEl = document.getElementById('trackList');
   trackListEl.innerHTML = '';
 
-  // Tampilkan track yang berhasil
   doneEntries.forEach((e, idx) => {
+    const normalSpd = getNormalSpeed(e.speed);
+    const actualMB = e.actualSizeMB ? e.actualSizeMB.toFixed(1) + 'MB' : '—';
     const div = document.createElement('div');
     div.className = 'track-item';
-    const actualMB = e.actualSizeMB ? e.actualSizeMB.toFixed(1) + 'MB' : '—';
     div.innerHTML = `
       <span class="track-num">${idx + 1}</span>
       <span class="track-name">${e.title}</span>
       <span class="track-speed-display">X${e.speed.toFixed(2)}</span>
-      <span class="track-normal-speed">N${getNormalSpeed(e.speed)}</span>
+      <span class="track-normal-speed">N${normalSpd}</span>
       <span class="track-bitrate-badge">${bitrateKbps}k · ${actualMB}</span>
     `;
     trackListEl.appendChild(div);
   });
 
-  // Tampilkan track yang di-skip karena output >7 menit
+  // Skipped entries dengan label alasan
   if (skippedEntries.length > 0) {
     const divider = document.createElement('div');
     divider.style.cssText = 'font-family:var(--mono);font-size:10px;color:var(--danger);text-transform:uppercase;letter-spacing:3px;margin:10px 0 6px;opacity:0.8;';
-    divider.textContent = `⛔ Di-skip — Output >7 Menit (${skippedEntries.length} file)`;
+    divider.textContent = `⛔ Di-skip (${skippedEntries.length} file)`;
     trackListEl.appendChild(divider);
 
     skippedEntries.forEach((e, idx) => {
       const div = document.createElement('div');
       div.className = 'track-item skipped-row';
-      const skipTargetM = Math.floor(targetSecs / 60), skipTargetS = targetSecs % 60;
+      const speed = e.audioBuffer ? e.duration / targetSecs : 0;
+      const normalSpeed = speed > 0 ? (1 / speed).toFixed(2) : '—';
+      const skipReason = e.status === 'tooSlow'
+        ? `⛔ N${normalSpeed} &gt; N2.00`
+        : `⛔ Output ${Math.floor(targetSecs/60)}:${String(targetSecs%60).padStart(2,'0')} &gt;7min`;
       div.innerHTML = `
         <span class="track-num" style="color:var(--danger)">${doneEntries.length + idx + 1}</span>
         <span class="track-name muted">${e.title}</span>
-        <span class="track-skip-badge">⛔ Output ${skipTargetM}:${String(skipTargetS).padStart(2,'0')} &gt;7min</span>
+        <span class="track-skip-badge">${skipReason}</span>
       `;
       trackListEl.appendChild(div);
     });
@@ -868,27 +901,29 @@ function showFinalResult(doneEntries, skippedEntries, bitrateKbps, targetSecs, z
   const moreLines = doneEntries.length > 3
     ? `<br>    &nbsp;&nbsp;&nbsp;<span style="color:var(--muted2)">...dan ${doneEntries.length - 3} file lainnya</span>`
     : '';
-  const skipLine = skippedEntries.length > 0
-    ? `<br>    &nbsp;&nbsp;&nbsp;<span style="color:var(--danger)">⛔ ${skippedEntries.length} file di-skip (output >7:00 menit)</span>`
-    : '';
+  const tooLongCount = skippedEntries.filter(e => e.status === 'toolong').length;
+  const tooSlowCount = skippedEntries.filter(e => e.status === 'tooSlow').length;
+  let skipLine = '';
+  if (tooLongCount) skipLine += `<br>    &nbsp;&nbsp;&nbsp;<span style="color:var(--danger)">⛔ ${tooLongCount} file di-skip (output >7:00 menit)</span>`;
+  if (tooSlowCount) skipLine += `<br>    &nbsp;&nbsp;&nbsp;<span style="color:var(--warn)">⛔ ${tooSlowCount} file di-skip (N>2.00 — audio terlalu lambat)</span>`;
 
   document.getElementById('zipStructure').innerHTML = `
     📦 <span class="folder">KAWARASTUDIO - AUDIO.zip</span><br>
     └── 📁 <span class="folder">KAWARASTUDIO - AUDIO/</span><br>
     &nbsp;&nbsp;&nbsp;&nbsp;└── 📁 <span class="folder">PITCH - SOUND/</span><br>
     ${fileLines}${moreLines}${skipLine}<br><br>
-    <span style="color:var(--muted2);font-size:10px">Format nama: JUDUL [N=1/speed].mp3 · Bitrate: ${bitrateKbps}kbps · Max: 20MB/file · Skip jika output >7:00</span>
+    <span style="color:var(--muted2);font-size:10px">Format nama: JUDUL [N=normalspeed].mp3 · Bitrate: ${bitrateKbps}kbps · Skip: output >7:00 atau N>2.00</span>
   `;
 
   document.getElementById('downloadBtn').textContent = `⬇ DOWNLOAD ZIP — KAWARASTUDIO-AUDIO (${sizeMB} MB)`;
   document.getElementById('resultWrap').classList.add('show');
 
   if (skippedEntries.length > 0 && doneEntries.length > 0) {
-    showToast(`✓ ${doneEntries.length} berhasil · ⛔ ${skippedEntries.length} di-skip (>7min)`, 'warn');
+    showToast(`✓ ${doneEntries.length} berhasil · ⛔ ${skippedEntries.length} di-skip`, 'warn');
   } else if (doneEntries.length > 0) {
     showToast(`✓ ${doneEntries.length} track selesai! ZIP ${sizeMB} MB siap.`, 'success');
   } else {
-    showToast(`⛔ Semua file di-skip karena output >7 menit!`, 'error');
+    showToast(`⛔ Semua file di-skip!`, 'error');
   }
 }
 
@@ -906,12 +941,12 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
 // SPEED PRESETS
 // ============================================================
 function applySpeedPreset(speedMultiplier) {
-  const ready = getAllReadyEntries().concat(getAllTooLongEntries());
-  if (ready.length === 0) {
+  const all = uploadedEntries.filter(e => e.audioBuffer);
+  if (all.length === 0) {
     showToast('Upload file dulu sebelum pakai preset!', 'warn');
     return;
   }
-  const maxDuration = Math.max(...ready.map(e => e.duration));
+  const maxDuration = Math.max(...all.map(e => e.duration));
   const newTarget = Math.round(maxDuration / speedMultiplier);
   const newMin = Math.floor(newTarget / 60);
   const newSec = newTarget % 60;
