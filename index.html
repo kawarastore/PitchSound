@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>KAWARA STUDIO — Batch Audio Processor</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -10,187 +10,639 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #070709; --surface: #0e0e14; --surface2: #16161f; --surface3: #1d1d28;
-  --border: rgba(255,255,255,0.06); --border2: rgba(255,255,255,0.12); --border3: rgba(255,255,255,0.2);
-  --accent: #c8ff00; --accent-dim: rgba(200,255,0,0.12); --accent2: #00ffc8; --accent2-dim: rgba(0,255,200,0.1);
-  --danger: #ff4466; --warn: #ffaa00; --purple: #a855f7;
-  --text: #eeeef5; --muted: #666677; --muted2: #444455;
-  --font: 'Space Grotesk', sans-serif; --display: 'Bebas Neue', sans-serif; --mono: 'JetBrains Mono', monospace;
+  --bg: #0a0008;
+  --surface: #120010;
+  --surface2: #1a0018;
+  --surface3: #220020;
+  --border: rgba(180,60,255,0.1);
+  --border2: rgba(180,60,255,0.2);
+  --border3: rgba(180,60,255,0.35);
+  --accent: #d946ef;
+  --accent-dim: rgba(217,70,239,0.12);
+  --accent2: #f43f5e;
+  --accent2-dim: rgba(244,63,94,0.1);
+  --accent3: #a855f7;
+  --grad: linear-gradient(135deg, #d946ef, #a855f7, #f43f5e);
+  --grad2: linear-gradient(90deg, #d946ef, #f43f5e);
+  --danger: #ff3a5c;
+  --warn: #fb923c;
+  --text: #f0e8f5;
+  --muted: #7a6080;
+  --muted2: #3d2845;
+  --font: 'Space Grotesk', sans-serif;
+  --display: 'Bebas Neue', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
 }
-body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; overflow-x: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Noise overlay */
 body::after {
-  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.bg-glow { position: fixed; pointer-events: none; z-index: 0; border-radius: 50%; filter: blur(120px); opacity: 0.06; }
-.bg-glow-1 { width: 600px; height: 600px; background: var(--accent); top: -200px; right: -100px; }
-.bg-glow-2 { width: 400px; height: 400px; background: var(--accent2); bottom: 100px; left: -100px; }
-.bg-glow-3 { width: 300px; height: 300px; background: var(--purple); top: 50%; left: 40%; }
-.wrapper { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 40px 24px 100px; }
-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
-.logo { display: flex; flex-direction: column; gap: 2px; }
-.logo-main { font-family: var(--display); font-size: 38px; letter-spacing: 4px; color: var(--accent); line-height: 1; }
-.logo-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 4px; text-transform: uppercase; }
-.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.badge { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,255,0,0.2); }
-.badge-cyan { background: var(--accent2-dim); color: var(--accent2); border-color: rgba(0,255,200,0.2); }
 
-/* Target Banner */
-.target-banner { background: var(--surface); border: 1px solid rgba(200,255,0,0.2); border-radius: 20px; padding: 20px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 20px; position: relative; overflow: hidden; }
-.target-banner::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 0% 50%, rgba(200,255,0,0.04) 0%, transparent 60%); pointer-events: none; }
-.target-icon { font-size: 28px; }
-.target-info { flex: 1; }
-.target-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 4px; }
-.target-val { font-family: var(--display); font-size: 32px; color: var(--accent); letter-spacing: 2px; }
-.target-inputs { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.target-inp { background: var(--surface2); border: 1px solid var(--border3); border-radius: 10px; padding: 8px 12px; color: var(--accent); font-family: var(--mono); font-size: 18px; font-weight: 700; width: 60px; text-align: center; outline: none; transition: border-color 0.2s; }
-.target-inp:focus { border-color: var(--accent); }
-.target-sep { font-family: var(--mono); color: var(--muted); font-size: 22px; }
+/* Glows */
+.bg-glow { position: fixed; pointer-events: none; z-index: 0; border-radius: 50%; filter: blur(100px); }
+.bg-glow-1 { width: 500px; height: 500px; background: #a855f7; opacity: 0.07; top: -150px; left: -100px; }
+.bg-glow-2 { width: 400px; height: 400px; background: #f43f5e; opacity: 0.06; bottom: 50px; right: -80px; }
+.bg-glow-3 { width: 300px; height: 300px; background: #d946ef; opacity: 0.05; top: 45%; left: 35%; }
 
-/* Skip Rules Banner */
-.skiprules-banner { background: var(--surface); border: 1px solid rgba(255,68,102,0.25); border-radius: 16px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 14px; }
-.skiprules-icon { font-size: 20px; flex-shrink: 0; padding-top: 2px; }
-.skiprules-info { flex: 1; }
-.skiprules-title { font-size: 13px; font-weight: 700; color: var(--danger); margin-bottom: 8px; }
-.skiprules-list { display: flex; flex-direction: column; gap: 6px; }
-.skiprule-item { display: flex; align-items: center; gap: 10px; }
-.skiprule-badge { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; min-width: 90px; text-align: center; }
-.skiprule-badge.red { color: var(--danger); background: rgba(255,68,102,0.12); border: 1px solid rgba(255,68,102,0.25); }
-.skiprule-badge.orange { color: var(--warn); background: rgba(255,170,0,0.1); border: 1px solid rgba(255,170,0,0.25); }
-.skiprule-desc { font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.5; }
+.wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 28px 16px 80px;
+}
 
-/* Quality Banner */
-.quality-banner { background: var(--surface); border: 1px solid rgba(0,255,200,0.15); border-radius: 16px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; }
-.quality-banner-icon { font-size: 22px; }
-.quality-banner-info { flex: 1; }
-.quality-banner-title { font-size: 13px; font-weight: 700; color: var(--accent2); margin-bottom: 4px; }
-.quality-banner-desc { font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.6; }
-.quality-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-.qpill { font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(0,255,200,0.2); color: var(--accent2); background: var(--accent2-dim); }
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border2);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.logo-main {
+  font-family: var(--display);
+  font-size: clamp(28px, 7vw, 40px);
+  letter-spacing: 4px;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+.logo-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.header-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.badge-purple { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(217,70,239,0.25); }
+.badge-red { background: var(--accent2-dim); color: var(--accent2); border: 1px solid rgba(244,63,94,0.25); }
 
-/* Upload */
-.upload-zone { border: 1.5px dashed var(--border2); border-radius: 20px; padding: 56px 32px; text-align: center; cursor: pointer; transition: all 0.25s; background: var(--surface); position: relative; overflow: hidden; margin-bottom: 16px; }
-.upload-zone::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 120%, rgba(200,255,0,0.04) 0%, transparent 60%); pointer-events: none; }
-.upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(200,255,0,0.02); box-shadow: 0 0 40px rgba(200,255,0,0.06); }
-.upload-icon { font-size: 48px; margin-bottom: 16px; }
-.upload-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
-.upload-sub { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+/* ── TARGET BANNER ── */
+.target-banner {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 18px;
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.target-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 0% 50%, rgba(217,70,239,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+.target-icon { font-size: 24px; flex-shrink: 0; }
+.target-info { flex: 1; min-width: 0; }
+.target-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 3px;
+}
+.target-val {
+  font-family: var(--display);
+  font-size: 30px;
+  background: var(--grad2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.target-inputs { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.target-inp {
+  background: var(--surface2);
+  border: 1px solid var(--border3);
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+  width: 56px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+.target-inp::-webkit-outer-spin-button,
+.target-inp::-webkit-inner-spin-button { -webkit-appearance: none; }
+.target-inp:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(217,70,239,0.15); }
+.target-sep { font-family: var(--mono); color: var(--muted); font-size: 20px; }
+
+/* ── SKIP RULES PILL ROW ── */
+.skip-rules-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.skip-rule-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid rgba(255,58,92,0.2);
+  border-radius: 12px;
+  padding: 8px 14px;
+  flex: 1;
+  min-width: 140px;
+}
+.skip-rule-pill .pill-icon { font-size: 14px; flex-shrink: 0; }
+.skip-rule-pill .pill-body {}
+.skip-rule-pill .pill-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--danger);
+}
+.skip-rule-pill .pill-desc {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: 18px;
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+.upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 110%, rgba(217,70,239,0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(217,70,239,0.03);
+  box-shadow: 0 0 30px rgba(217,70,239,0.08);
+}
+.upload-icon { font-size: 40px; margin-bottom: 12px; }
+.upload-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.upload-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); }
 .upload-sub span { color: var(--accent); }
 #file-input { display: none; }
 
-/* File List */
-.file-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-.file-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; position: relative; overflow: hidden; transition: border-color 0.2s; }
-.file-row.ready { border-color: rgba(200,255,0,0.15); }
-.file-row.processing { border-color: rgba(200,255,0,0.3); }
-.file-row.done { border-color: rgba(0,255,200,0.3); }
-.file-row.error { border-color: rgba(255,68,68,0.3); }
-.file-row.skipped { border-color: rgba(255,68,102,0.35); background: rgba(255,68,102,0.04); }
-.file-row-progress { position: absolute; left: 0; top: 0; height: 100%; background: rgba(200,255,0,0.05); transition: width 0.3s ease; }
-.file-icon2 { font-size: 18px; flex-shrink: 0; z-index: 1; }
+/* ── FILE LIST ── */
+.file-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 11px 14px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.file-row.ready   { border-color: rgba(217,70,239,0.2); }
+.file-row.processing { border-color: rgba(217,70,239,0.4); }
+.file-row.done    { border-color: rgba(168,85,247,0.35); }
+.file-row.error   { border-color: rgba(255,58,92,0.3); }
+.file-row.skipped { border-color: rgba(255,58,92,0.3); background: rgba(255,58,92,0.04); }
+.file-row-progress {
+  position: absolute; left: 0; top: 0; height: 100%;
+  background: rgba(217,70,239,0.06);
+  transition: width 0.3s ease;
+}
+.file-icon2 { font-size: 16px; flex-shrink: 0; z-index: 1; }
 .file-info2 { flex: 1; min-width: 0; z-index: 1; }
-.file-name2 { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.file-meta2 { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
-.file-speed-badge { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-dim); border-radius: 6px; padding: 2px 8px; flex-shrink: 0; z-index: 1; }
-.file-speed-badge.skip { color: var(--danger); background: rgba(255,68,102,0.12); }
-.file-status { font-family: var(--mono); font-size: 11px; flex-shrink: 0; z-index: 1; width: 100px; text-align: right; }
+.file-name2 {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-meta2 {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-speed-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-radius: 6px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+  z-index: 1;
+  white-space: nowrap;
+}
+.file-speed-badge.skip { color: var(--danger); background: rgba(255,58,92,0.1); }
+.file-status {
+  font-family: var(--mono);
+  font-size: 10px;
+  flex-shrink: 0;
+  z-index: 1;
+  min-width: 58px;
+  text-align: right;
+}
 .file-status.wait { color: var(--muted); }
 .file-status.proc { color: var(--accent); }
-.file-status.ok { color: var(--accent2); }
-.file-status.err { color: var(--danger); }
+.file-status.ok   { color: var(--accent3); }
+.file-status.err  { color: var(--danger); }
 .file-status.skip { color: var(--danger); }
-.file-remove-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; z-index: 1; padding: 2px 6px; flex-shrink: 0; transition: color 0.2s; }
+.file-remove-btn {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 13px; z-index: 1;
+  padding: 3px 6px; flex-shrink: 0;
+  transition: color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
 .file-remove-btn:hover { color: var(--danger); }
+.skip-reason {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--danger);
+  background: rgba(255,58,92,0.1);
+  border: 1px solid rgba(255,58,92,0.2);
+  border-radius: 6px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+  z-index: 1;
+  white-space: nowrap;
+}
 
-/* Skip reason tag */
-.skip-reason { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: var(--danger); background: rgba(255,68,102,0.1); border: 1px solid rgba(255,68,102,0.2); border-radius: 6px; padding: 2px 8px; flex-shrink: 0; z-index: 1; }
-
-/* Section label */
-.section-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 4px; color: var(--muted); margin: 32px 0 16px; display: flex; align-items: center; gap: 12px; }
+/* ── SUMMARY ── */
+.section-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  color: var(--muted);
+  margin: 24px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-/* Summary */
-.batch-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
-.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 12px; text-align: center; }
-.summary-val { font-family: var(--display); font-size: 28px; color: var(--accent2); letter-spacing: 1px; }
-.summary-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
-.summary-card.danger .summary-val { color: var(--danger); }
+.batch-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.summary-val {
+  font-family: var(--display);
+  font-size: 24px;
+  background: var(--grad2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 1px;
+}
+.summary-lbl {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 3px;
+}
+.summary-card.danger .summary-val { background: none; -webkit-text-fill-color: var(--danger); color: var(--danger); }
 
-/* Process Button */
-.process-btn { width: 100%; padding: 20px; border-radius: 18px; background: var(--accent); color: #070709; font-family: var(--display); font-size: 20px; letter-spacing: 3px; border: none; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-.process-btn:disabled { background: var(--surface2); color: var(--muted2); cursor: not-allowed; }
-.process-btn:not(:disabled):hover { background: #d4ff1a; box-shadow: 0 0 40px rgba(200,255,0,0.35); transform: translateY(-2px); }
+/* ── PROCESS BUTTON ── */
+.process-btn {
+  width: 100%;
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--grad);
+  color: #fff;
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 3px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.process-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background 0.2s;
+}
+.process-btn:disabled {
+  background: var(--surface2);
+  color: var(--muted2);
+  cursor: not-allowed;
+}
+.process-btn:not(:disabled):hover::before { background: rgba(255,255,255,0.08); }
+.process-btn:not(:disabled):active { transform: scale(0.98); }
 
-/* Progress */
-.overall-progress { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; margin-top: 16px; }
+/* ── PROGRESS ── */
+.overall-progress {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 14px;
+}
 .overall-progress.show { display: block; animation: fadeUp 0.3s ease; }
-.prog-header { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.prog-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
 .prog-label { color: var(--text); font-weight: 600; }
 .prog-pct { color: var(--accent); font-weight: 700; }
-.prog-bar-bg { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
-.prog-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; width: 0%; transition: width 0.4s ease; }
-.prog-status { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: center; letter-spacing: 2px; }
-.prog-current-file { font-family: var(--mono); font-size: 11px; color: var(--accent); text-align: center; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* Result */
-.result-wrap { display: none; background: var(--surface); border: 1px solid rgba(0,255,200,0.25); border-radius: 20px; padding: 28px; margin-top: 16px; position: relative; overflow: hidden; }
-.result-wrap::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(0,255,200,0.05) 0%, transparent 60%); pointer-events: none; }
-.result-wrap.show { display: block; animation: fadeUp 0.4s ease; }
-.result-title { font-family: var(--display); font-size: 24px; letter-spacing: 2px; color: var(--accent2); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-.result-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
-.stat-card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 14px; text-align: center; }
-.stat-val { font-family: var(--display); font-size: 24px; color: var(--accent2); letter-spacing: 1px; }
-.stat-val.red { color: var(--danger); }
-.stat-lbl { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; margin-top: 4px; }
-.track-list-title { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 3px; color: var(--muted); margin-bottom: 10px; }
-.track-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
-.track-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border-radius: 10px; padding: 10px 14px; gap: 12px; }
-.track-item.skipped-row { background: rgba(255,68,102,0.05); border: 1px solid rgba(255,68,102,0.15); }
-.track-num { font-family: var(--mono); font-size: 11px; color: var(--muted2); width: 20px; flex-shrink: 0; }
-.track-name { font-size: 13px; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.track-name.muted { color: var(--muted); text-decoration: line-through; }
-.track-speed-display { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-dim); border-radius: 6px; padding: 3px 10px; flex-shrink: 0; white-space: nowrap; }
-.track-normal-speed { font-family: var(--mono); font-size: 10px; color: var(--accent2); background: var(--accent2-dim); border-radius: 6px; padding: 3px 8px; flex-shrink: 0; }
-.track-bitrate-badge { font-family: var(--mono); font-size: 10px; color: var(--warn); background: rgba(255,170,0,0.1); border-radius: 6px; padding: 3px 8px; flex-shrink: 0; }
-.track-skip-badge { font-family: var(--mono); font-size: 10px; color: var(--danger); background: rgba(255,68,102,0.1); border: 1px solid rgba(255,68,102,0.2); border-radius: 6px; padding: 3px 8px; flex-shrink: 0; }
-.download-btn { width: 100%; padding: 18px; border-radius: 16px; background: rgba(0,255,200,0.1); border: 1px solid rgba(0,255,200,0.3); color: var(--accent2); font-family: var(--display); font-size: 18px; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-.download-btn:hover { background: rgba(0,255,200,0.18); box-shadow: 0 0 30px rgba(0,255,200,0.2); }
-.zip-structure { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 12px; padding: 12px 16px; background: var(--surface2); border-radius: 10px; line-height: 2; }
-.zip-structure .folder { color: var(--warn); }
-.zip-structure .file { color: var(--text); opacity: 0.7; }
-
-/* Toast */
-.toast { position: fixed; bottom: 32px; right: 32px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 14px; padding: 14px 22px; font-family: var(--mono); font-size: 13px; color: var(--text); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 10000; max-width: 360px; }
-.toast.show { transform: translateY(0); opacity: 1; }
-.toast.success { border-color: rgba(200,255,0,0.4); color: var(--accent); }
-.toast.error { border-color: rgba(255,68,68,0.4); color: var(--danger); }
-.toast.warn { border-color: rgba(255,170,0,0.4); color: var(--warn); }
-
-footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.credit { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-.credit span { color: var(--accent); }
-.version { font-family: var(--mono); font-size: 11px; color: var(--muted2); }
-
-.speed-presets { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-.speed-preset-btn {
-  flex: 1; min-width: 80px; padding: 12px 8px; border-radius: 12px;
-  background: var(--surface); border: 1px solid var(--border2);
-  color: var(--text); font-family: var(--mono); cursor: pointer;
-  transition: all 0.2s; text-align: center;
+.prog-bar-bg { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+.prog-bar-fill {
+  height: 100%;
+  background: var(--grad2);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.4s ease;
 }
-.speed-preset-btn:hover { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
-.speed-preset-btn .sp-x { font-family: var(--display); font-size: 22px; letter-spacing: 2px; color: var(--accent); display: block; }
-.speed-preset-btn .sp-info { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-top: 3px; display: block; }
+.prog-status { font-family: var(--mono); font-size: 10px; color: var(--muted); text-align: center; letter-spacing: 2px; }
+.prog-current-file {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  text-align: center;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes spin { to { transform: rotate(360deg); } }
-.spin { animation: spin 1s linear infinite; display: inline-block; }
+/* ── RESULT ── */
+.result-wrap {
+  display: none;
+  background: var(--surface);
+  border: 1px solid rgba(168,85,247,0.25);
+  border-radius: 18px;
+  padding: 22px;
+  margin-top: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.result-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(168,85,247,0.06) 0%, transparent 55%);
+  pointer-events: none;
+}
+.result-wrap.show { display: block; animation: fadeUp 0.4s ease; }
+.result-title {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 2px;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.stat-val {
+  font-family: var(--display);
+  font-size: 22px;
+  background: var(--grad2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 1px;
+}
+.stat-val.red { background: none; -webkit-text-fill-color: var(--danger); color: var(--danger); }
+.stat-lbl { font-family: var(--mono); font-size: 8px; color: var(--muted); text-transform: uppercase; margin-top: 3px; }
 
-@media (max-width: 620px) {
-  .batch-summary, .result-stats { grid-template-columns: repeat(2, 1fr); }
-  header { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .target-banner { flex-wrap: wrap; }
-  .target-inputs { margin-left: 0; }
+.track-list-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.track-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+.track-item {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  padding: 9px 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.track-item.skipped-row { background: rgba(255,58,92,0.05); border: 1px solid rgba(255,58,92,0.15); }
+.track-num { font-family: var(--mono); font-size: 10px; color: var(--muted2); width: 18px; flex-shrink: 0; }
+.track-name { font-size: 12px; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track-name.muted { color: var(--muted); text-decoration: line-through; }
+.track-speed-display {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  color: var(--accent); background: var(--accent-dim);
+  border-radius: 5px; padding: 2px 8px; flex-shrink: 0; white-space: nowrap;
+}
+.track-normal-speed {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--accent3); background: rgba(168,85,247,0.12);
+  border-radius: 5px; padding: 2px 7px; flex-shrink: 0;
+}
+.track-bitrate-badge {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--warn); background: rgba(251,146,60,0.1);
+  border-radius: 5px; padding: 2px 7px; flex-shrink: 0;
+}
+.track-skip-badge {
+  font-family: var(--mono); font-size: 9px;
+  color: var(--danger); background: rgba(255,58,92,0.1);
+  border: 1px solid rgba(255,58,92,0.2);
+  border-radius: 5px; padding: 2px 7px; flex-shrink: 0;
+}
+
+.download-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(168,85,247,0.12);
+  border: 1px solid rgba(168,85,247,0.35);
+  color: var(--accent3);
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.download-btn:hover { background: rgba(168,85,247,0.2); box-shadow: 0 0 24px rgba(168,85,247,0.2); }
+.download-btn:active { transform: scale(0.98); }
+
+.zip-structure {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border-radius: 10px;
+  line-height: 1.9;
+}
+.zip-structure .folder { color: var(--warn); }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  opacity: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  transition: all 0.3s ease;
+  z-index: 10000;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.success { border-color: rgba(217,70,239,0.4); color: var(--accent); }
+.toast.error   { border-color: rgba(255,58,92,0.4); color: var(--danger); }
+.toast.warn    { border-color: rgba(251,146,60,0.4); color: var(--warn); }
+
+/* ── FOOTER ── */
+footer {
+  margin-top: 60px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.credit { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.credit span { color: var(--accent); }
+.version { font-family: var(--mono); font-size: 10px; color: var(--muted2); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 480px) {
+  .wrapper { padding: 20px 12px 70px; }
+  header { margin-bottom: 22px; }
+  .batch-summary { grid-template-columns: repeat(2, 1fr); }
+  .result-stats  { grid-template-columns: repeat(2, 1fr); }
+  .target-banner { flex-wrap: wrap; gap: 12px; }
+  .skip-rules-row { flex-direction: column; }
+  .file-speed-badge { display: none; }
+  .track-item { gap: 6px; }
+}
+@media (max-width: 360px) {
+  .logo-main { font-size: 26px; letter-spacing: 2px; }
+  .header-badges { display: none; }
 }
 </style>
 </head>
@@ -198,15 +650,16 @@ footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border
 <div class="bg-glow bg-glow-1"></div>
 <div class="bg-glow bg-glow-2"></div>
 <div class="bg-glow bg-glow-3"></div>
+
 <div class="wrapper">
   <header>
     <div class="logo">
       <div class="logo-main">KAWARA STUDIO</div>
-      <div class="logo-sub">Batch Audio Processor · v5.2.0</div>
+      <div class="logo-sub">Batch Audio Processor · v5.3.0</div>
     </div>
-    <div class="header-right">
-      <div class="badge">HQ · Max 20MB · ZIP Export</div>
-      <div class="badge badge-cyan">Upload File · Multi-Batch</div>
+    <div class="header-badges">
+      <div class="badge badge-purple">HQ · Max 20MB · ZIP</div>
+      <div class="badge badge-red">Multi-File · Auto-Skip</div>
     </div>
   </header>
 
@@ -224,80 +677,46 @@ footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border
     </div>
   </div>
 
-  <!-- Skip Rules Banner -->
-  <div class="skiprules-banner">
-    <div class="skiprules-icon">🚫</div>
-    <div class="skiprules-info">
-      <div class="skiprules-title">Auto-Skip Rules</div>
-      <div class="skiprules-list">
-        <div class="skiprule-item">
-          <span class="skiprule-badge red">Output &gt; 7:00</span>
-          <span class="skiprule-desc">Target durasi terlalu panjang — output akan melebihi 7 menit</span>
-        </div>
-        <div class="skiprule-item">
-          <span class="skiprule-badge orange">N &gt; 2.00</span>
-          <span class="skiprule-desc">Normal speed (N = 1/X) melebihi batas N2.00 — audio diperlambat terlalu ekstrem (&lt;0.5×)</span>
-        </div>
+  <!-- Skip Rules Pills -->
+  <div class="skip-rules-row">
+    <div class="skip-rule-pill">
+      <span class="pill-icon">⏱</span>
+      <div class="pill-body">
+        <div class="pill-title">Output &gt; 7:00</div>
+        <div class="pill-desc">Durasi output terlalu panjang</div>
       </div>
     </div>
-  </div>
-
-  <!-- Quality Info -->
-  <div class="quality-banner">
-    <div class="quality-banner-icon">✨</div>
-    <div class="quality-banner-info">
-      <div class="quality-banner-title">High Quality Audio Processing</div>
-      <div class="quality-banner-desc">
-        Setiap file diproses dengan: normalisasi volume otomatis · resampling presisi tinggi via OfflineAudioContext 44.1kHz · bitrate tertinggi yang muat di 20MB (320/256/192/128/96/64kbps) · anti-clipping limiter
+    <div class="skip-rule-pill">
+      <span class="pill-icon">🐢</span>
+      <div class="pill-body">
+        <div class="pill-title">N &gt; 2.00</div>
+        <div class="pill-desc">Audio diperlambat terlalu ekstrem</div>
       </div>
     </div>
-    <div class="quality-pills">
-      <span class="qpill">44.1kHz</span>
-      <span class="qpill">Auto-Normalize</span>
-      <span class="qpill">Anti-Clip</span>
-      <span class="qpill">Max 20MB</span>
-    </div>
-  </div>
-
-  <!-- Speed Presets -->
-  <div class="section-label" style="margin-top:0">Shortcut Kecepatan</div>
-  <div class="speed-presets">
-    <button class="speed-preset-btn" onclick="applySpeedPreset(0.5)">
-      <span class="sp-x">×0.5</span>
-      <span class="sp-info">2× lebih lambat</span>
-    </button>
-    <button class="speed-preset-btn" onclick="applySpeedPreset(1.5)">
-      <span class="sp-x">×1.5</span>
-      <span class="sp-info">1.5× lebih cepat</span>
-    </button>
-    <button class="speed-preset-btn" onclick="applySpeedPreset(2.0)">
-      <span class="sp-x">×2.0</span>
-      <span class="sp-info">anti-copyright kuat</span>
-    </button>
   </div>
 
   <!-- Upload Zone -->
   <div class="upload-zone" id="uploadZone">
     <input type="file" id="file-input" accept="audio/*" multiple>
     <div class="upload-icon">🎵</div>
-    <div class="upload-title">Upload Banyak Audio Sekaligus</div>
-    <div class="upload-sub">Drag & drop atau <span>klik untuk pilih file</span></div>
-    <div class="upload-sub" style="margin-top:6px">MP3, WAV, AAC, OGG, M4A, FLAC · Multi-file support</div>
+    <div class="upload-title">Upload Audio</div>
+    <div class="upload-sub">Drag & drop atau <span>klik untuk pilih</span></div>
+    <div class="upload-sub" style="margin-top:4px">MP3, WAV, AAC, OGG, M4A, FLAC</div>
   </div>
 
   <div class="file-list" id="fileList"></div>
 
   <!-- Summary -->
-  <div class="section-label">Ringkasan Batch</div>
+  <div class="section-label">Ringkasan</div>
   <div class="batch-summary">
-    <div class="summary-card"><div class="summary-val" id="totalFiles">0</div><div class="summary-lbl">Total File</div></div>
-    <div class="summary-card"><div class="summary-val" id="totalTarget">3:00</div><div class="summary-lbl">Target Durasi</div></div>
+    <div class="summary-card"><div class="summary-val" id="totalFiles">0</div><div class="summary-lbl">File Siap</div></div>
+    <div class="summary-card"><div class="summary-val" id="totalTarget">3:00</div><div class="summary-lbl">Target</div></div>
     <div class="summary-card danger" id="skippedCard" style="display:none"><div class="summary-val" id="totalSkipped">0</div><div class="summary-lbl">Di-Skip</div></div>
-    <div class="summary-card" id="bitrateCard"><div class="summary-val" id="estBitrate">—</div><div class="summary-lbl">Bitrate kbps</div></div>
-    <div class="summary-card"><div class="summary-val" id="estZipSize">—</div><div class="summary-lbl">Est. ZIP MB</div></div>
+    <div class="summary-card"><div class="summary-val" id="estBitrate">—</div><div class="summary-lbl">Kbps</div></div>
+    <div class="summary-card"><div class="summary-val" id="estZipSize">—</div><div class="summary-lbl">Est. MB</div></div>
   </div>
 
-  <button class="process-btn" id="processBtn" disabled>⚡ PROSES SEMUA & EXPORT ZIP</button>
+  <button class="process-btn" id="processBtn" disabled>⚡ PROSES & EXPORT ZIP</button>
 
   <!-- Overall Progress -->
   <div class="overall-progress" id="overallProgress">
@@ -314,17 +733,18 @@ footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border
   <div class="result-wrap" id="resultWrap">
     <div class="result-title">✅ ZIP SIAP DOWNLOAD</div>
     <div class="result-stats" id="resultStats"></div>
-    <div class="track-list-title">Daftar Track · Kecepatan · Bitrate</div>
+    <div class="track-list-title">Daftar Track</div>
     <div class="track-list" id="trackList"></div>
-    <button class="download-btn" id="downloadBtn">⬇ DOWNLOAD ZIP — KAWARASTUDIO-AUDIO</button>
+    <button class="download-btn" id="downloadBtn">⬇ DOWNLOAD ZIP</button>
     <div class="zip-structure" id="zipStructure"></div>
   </div>
 
   <footer>
     <div class="credit">Built by <span>KAWARA STUDIO</span></div>
-    <div class="version">v5.2.0 · HQ Upload · ZIP Export · Skip &gt;7min &amp; N&gt;2.00</div>
+    <div class="version">v5.3.0 · Skip &gt;7min &amp; N&gt;2.00</div>
   </footer>
 </div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -332,8 +752,8 @@ footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border
 // CONFIG
 // ============================================================
 const MAX_MB = 20;
-const MAX_OUTPUT_SECS = 7 * 60; // 420s = 7 menit
-const MAX_NORMAL_SPEED = 2.00;  // N = 1/speed — tidak boleh melebihi ini (berarti speed < 0.5 dilarang)
+const MAX_OUTPUT_SECS = 7 * 60;
+const MAX_NORMAL_SPEED = 2.00;
 const BITRATE_STEPS = [320, 256, 192, 128, 96, 64, 48, 32];
 const OUTPUT_SAMPLE_RATE = 44100;
 
@@ -351,21 +771,13 @@ function getTargetSecs() {
   return (parseInt(tMinEl.value) || 3) * 60 + (parseInt(tSecEl.value) || 0);
 }
 
-/**
- * Tentukan status skip sebuah entry berdasarkan target saat ini.
- * Returns: 'ready' | 'toolong' | 'tooSlow'
- *
- * toolong  → target durasi output > 7 menit
- * tooSlow  → N = 1/speed > 2.00  (artinya speed < 0.5, audio diperlambat terlalu ekstrem)
- */
 function computeEntryStatus(entry) {
   if (!entry.audioBuffer) return 'loading';
   const targetSecs = getTargetSecs();
   const speed = entry.duration / targetSecs;
-  const normalSpeed = 1 / speed; // N value
-
+  const normalSpeed = 1 / speed;
   if (targetSecs > MAX_OUTPUT_SECS) return 'toolong';
-  if (normalSpeed > MAX_NORMAL_SPEED) return 'tooSlow'; // speed < 0.5
+  if (normalSpeed > MAX_NORMAL_SPEED) return 'tooSlow';
   return 'ready';
 }
 
@@ -373,13 +785,9 @@ function updateTargetDisplay() {
   const m = parseInt(tMinEl.value) || 0, s = parseInt(tSecEl.value) || 0;
   document.getElementById('targetDisplay').textContent = m + ':' + String(s).padStart(2, '0');
   uploadedEntries.forEach(entry => {
-    if (entry.audioBuffer) {
-      const newStatus = computeEntryStatus(entry);
-      // Hanya update jika tidak sedang/sudah diproses
-      if (!['processing', 'done', 'error'].includes(entry.status)) {
-        entry.status = newStatus;
-        entry.speed = entry.duration / getTargetSecs();
-      }
+    if (entry.audioBuffer && !['processing', 'done', 'error'].includes(entry.status)) {
+      entry.status = computeEntryStatus(entry);
+      entry.speed = entry.duration / getTargetSecs();
       updateFileRow(entry);
     }
   });
@@ -390,7 +798,7 @@ tMinEl.addEventListener('input', updateTargetDisplay);
 tSecEl.addEventListener('input', updateTargetDisplay);
 
 // ============================================================
-// UPLOAD ZONE
+// UPLOAD
 // ============================================================
 const uploadZone = document.getElementById('uploadZone');
 const fileInputEl = document.getElementById('file-input');
@@ -415,11 +823,7 @@ async function addUploadFiles(newFiles) {
       id: Date.now() + Math.random(),
       file: f,
       title: f.name.replace(/\.[^.]+$/, ''),
-      audioBuffer: null,
-      duration: 0,
-      speed: 0,
-      status: 'loading',
-      blob: null
+      audioBuffer: null, duration: 0, speed: 0, status: 'loading', blob: null
     };
     uploadedEntries.push(entry);
     renderFileRow(entry);
@@ -454,7 +858,7 @@ function renderFileRow(entry) {
       <div class="file-name2">${entry.title}</div>
       <div class="file-meta2" id="fmeta-${entry.id}">${formatBytes(entry.file.size)} · Memuat...</div>
     </div>
-    <div class="file-speed-badge" id="fspeed-${entry.id}">—×</div>
+    <div class="file-speed-badge" id="fspeed-${entry.id}">—</div>
     <div class="file-status wait" id="fstatus-${entry.id}">Memuat</div>
     <button class="file-remove-btn" onclick="removeUploadEntry('${entry.id}')">✕</button>
   `;
@@ -473,9 +877,8 @@ function updateFileRow(entry) {
   const targetSecs = getTargetSecs();
   const br = calcBitrate(targetSecs);
   const speed = entry.audioBuffer ? entry.duration / targetSecs : 0;
-  const normalSpeed = speed > 0 ? (1 / speed) : 0;
+  const normalSpeed = speed > 0 ? 1 / speed : 0;
 
-  // Bersihkan skip tag lama
   const existSkipTag = row.querySelector('.skip-reason');
   if (existSkipTag) existSkipTag.remove();
 
@@ -490,22 +893,21 @@ function updateFileRow(entry) {
   } else if (entry.status === 'toolong') {
     row.className = 'file-row skipped';
     const outM = Math.floor(targetSecs / 60), outS = targetSecs % 60;
-    meta.textContent = `${sizeStr} · ${durStr} · Output: ${outM}:${String(outS).padStart(2,'0')} (>7min)`;
+    meta.textContent = `${sizeStr} · ${durStr} · Output: ${outM}:${String(outS).padStart(2,'0')}`;
     speedEl.className = 'file-speed-badge skip';
     speedEl.textContent = `X${speed.toFixed(2)}`;
     statusEl.className = 'file-status skip';
     statusEl.textContent = '⛔ Skip';
-    addSkipTag(row, 'Output >7min');
+    addSkipTag(row, '>7min');
 
   } else if (entry.status === 'tooSlow') {
-    // N > 2.00 → speed < 0.5 → diperlambat terlalu ekstrem
     row.className = 'file-row skipped';
-    meta.textContent = `${sizeStr} · ${durStr} · X${speed.toFixed(2)} · N${normalSpeed.toFixed(2)} (>N2.00)`;
+    meta.textContent = `${sizeStr} · ${durStr} · X${speed.toFixed(2)} · N${normalSpeed.toFixed(2)}`;
     speedEl.className = 'file-speed-badge skip';
     speedEl.textContent = `X${speed.toFixed(2)}`;
     statusEl.className = 'file-status skip';
     statusEl.textContent = '⛔ Skip';
-    addSkipTag(row, `N${normalSpeed.toFixed(2)} >2.00`);
+    addSkipTag(row, `N${normalSpeed.toFixed(2)}`);
 
   } else if (entry.status === 'processing') {
     row.className = 'file-row processing';
@@ -531,8 +933,7 @@ function addSkipTag(row, label) {
   const tag = document.createElement('span');
   tag.className = 'skip-reason';
   tag.textContent = label;
-  const removeBtn = row.querySelector('.file-remove-btn');
-  row.insertBefore(tag, removeBtn);
+  row.insertBefore(tag, row.querySelector('.file-remove-btn'));
 }
 
 function removeUploadEntry(id) {
@@ -546,13 +947,8 @@ function removeUploadEntry(id) {
 // ============================================================
 // SUMMARY & HELPERS
 // ============================================================
-function getAllReadyEntries() {
-  return uploadedEntries.filter(e => e.status === 'ready');
-}
-
-function getAllSkippedEntries() {
-  return uploadedEntries.filter(e => e.status === 'toolong' || e.status === 'tooSlow');
-}
+function getAllReadyEntries()   { return uploadedEntries.filter(e => e.status === 'ready'); }
+function getAllSkippedEntries() { return uploadedEntries.filter(e => e.status === 'toolong' || e.status === 'tooSlow'); }
 
 function refreshSummary() {
   const ready = getAllReadyEntries();
@@ -560,84 +956,57 @@ function refreshSummary() {
   const tSecs = getTargetSecs();
   const tM = Math.floor(tSecs / 60), tS = tSecs % 60;
   document.getElementById('totalFiles').textContent = ready.length;
-  document.getElementById('totalTarget').textContent = tM + ':' + String(tS).padStart(2, '0');
-
+  document.getElementById('totalTarget').textContent = tM + ':' + String(tS).padStart(2,'0');
   const skippedCard = document.getElementById('skippedCard');
-  if (skipped.length > 0) {
-    skippedCard.style.display = '';
-    document.getElementById('totalSkipped').textContent = skipped.length;
-  } else {
-    skippedCard.style.display = 'none';
-  }
-
+  if (skipped.length > 0) { skippedCard.style.display = ''; document.getElementById('totalSkipped').textContent = skipped.length; }
+  else skippedCard.style.display = 'none';
   if (ready.length > 0) {
     const br = calcBitrate(tSecs);
     document.getElementById('estBitrate').textContent = br;
-    const totalMB = ready.reduce((sum) => sum + estimateSize(tSecs, br), 0);
-    document.getElementById('estZipSize').textContent = totalMB.toFixed(1) + ' MB';
+    const totalMB = ready.reduce((s) => s + estimateSize(tSecs, br), 0);
+    document.getElementById('estZipSize').textContent = totalMB.toFixed(1);
   } else {
     document.getElementById('estBitrate').textContent = '—';
     document.getElementById('estZipSize').textContent = '—';
   }
 }
 
-function updateProcessBtn() {
-  document.getElementById('processBtn').disabled = getAllReadyEntries().length === 0;
-}
+function updateProcessBtn() { document.getElementById('processBtn').disabled = getAllReadyEntries().length === 0; }
 
 function calcBitrate(durationSecs) {
   const maxBits = MAX_MB * 1024 * 1024 * 8;
   const idealKbps = maxBits / durationSecs / 1000;
-  for (const b of BITRATE_STEPS) {
-    if (b <= idealKbps) return b;
-  }
+  for (const b of BITRATE_STEPS) { if (b <= idealKbps) return b; }
   return 32;
 }
-
-function estimateSize(durationSecs, bitrateKbps) {
-  return (bitrateKbps * 1000 * durationSecs) / 8 / (1024 * 1024);
-}
-
-function formatTime(secs) {
-  secs = Math.floor(secs || 0);
-  return Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
-}
-
-function formatBytes(bytes) {
-  return bytes < 1048576 ? (bytes / 1024).toFixed(1) + ' KB' : (bytes / 1048576).toFixed(1) + ' MB';
-}
-
-function tick(ms = 20) { return new Promise(r => setTimeout(r, ms)); }
+function estimateSize(durationSecs, bitrateKbps) { return (bitrateKbps * 1000 * durationSecs) / 8 / (1024*1024); }
+function formatTime(secs) { secs = Math.floor(secs||0); return Math.floor(secs/60)+':'+String(secs%60).padStart(2,'0'); }
+function formatBytes(bytes) { return bytes < 1048576 ? (bytes/1024).toFixed(1)+' KB' : (bytes/1048576).toFixed(1)+' MB'; }
+function tick(ms=20) { return new Promise(r=>setTimeout(r,ms)); }
 
 let toastTimer;
-function showToast(msg, type = '') {
+function showToast(msg, type='') {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast show ' + type;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 4500);
 }
-
-function setOverallProgress(pct, label, status, currentFile = '') {
+function setOverallProgress(pct, label, status, currentFile='') {
   document.getElementById('progFill').style.width = pct + '%';
   document.getElementById('progPct').textContent = Math.round(pct) + '%';
   if (label) document.getElementById('progLabel').textContent = label;
   if (status) document.getElementById('progStatus').textContent = status.toUpperCase();
   document.getElementById('progCurrentFile').textContent = currentFile;
 }
-
-function getNormalSpeed(speed) {
-  return (1 / speed).toFixed(2);
-}
-
+function getNormalSpeed(speed) { return (1/speed).toFixed(2); }
 function makeFileName(title, speed) {
-  const normalSpeed = getNormalSpeed(speed);
-  const safeTitle = title.replace(/[\\/:*?"<>|]/g, '_').substring(0, 60);
-  return `${safeTitle} [N${normalSpeed}].mp3`;
+  const safeTitle = title.replace(/[\\/:*?"<>|]/g,'_').substring(0,60);
+  return `${safeTitle} [N${getNormalSpeed(speed)}].mp3`;
 }
 
 // ============================================================
-// HIGH QUALITY AUDIO NORMALIZATION
+// NORMALIZE
 // ============================================================
 function normalizeAudioBuffer(audioBuffer) {
   const numChannels = audioBuffer.numberOfChannels;
@@ -645,25 +1014,19 @@ function normalizeAudioBuffer(audioBuffer) {
   let peak = 0;
   for (let ch = 0; ch < numChannels; ch++) {
     const data = audioBuffer.getChannelData(ch);
-    for (let i = 0; i < length; i++) {
-      const abs = Math.abs(data[i]);
-      if (abs > peak) peak = abs;
-    }
+    for (let i = 0; i < length; i++) { const a = Math.abs(data[i]); if (a > peak) peak = a; }
   }
-  const TARGET = 0.891;
   if (peak < 0.001) return audioBuffer;
-  const gain = Math.min(TARGET / peak, 4.0);
+  const gain = Math.min(0.891 / peak, 4.0);
   for (let ch = 0; ch < numChannels; ch++) {
     const data = audioBuffer.getChannelData(ch);
-    for (let i = 0; i < length; i++) {
-      data[i] = Math.max(-1, Math.min(1, data[i] * gain));
-    }
+    for (let i = 0; i < length; i++) { data[i] = Math.max(-1, Math.min(1, data[i] * gain)); }
   }
   return audioBuffer;
 }
 
 // ============================================================
-// HIGH QUALITY MP3 ENCODE
+// MP3 ENCODE
 // ============================================================
 function encodeLameMp3(audioBuffer, bitrateKbps, onProgress) {
   return new Promise((resolve, reject) => {
@@ -674,52 +1037,45 @@ function encodeLameMp3(audioBuffer, bitrateKbps, onProgress) {
       const rightData = numChannels > 1 ? audioBuffer.getChannelData(1) : leftData;
       const channels = numChannels > 1 ? 2 : 1;
       const mp3enc = new lamejs.Mp3Encoder(channels, sampleRate, bitrateKbps);
-      const CHUNK = 1152;
-      const BATCH = 40;
+      const CHUNK = 1152, BATCH = 40;
       const totalChunks = Math.ceil(leftData.length / CHUNK);
       const mp3Data = [];
       let chunkIdx = 0;
-
       function floatToInt16(arr, offset, len) {
         const out = new Int16Array(len);
         for (let i = 0; i < len; i++) {
-          const s = Math.max(-1, Math.min(1, arr[offset + i] || 0));
-          const dither = (Math.random() - 0.5) * (1 / 32768) * 0.5;
-          const sd = Math.max(-1, Math.min(1, s + dither));
-          out[i] = sd < 0 ? sd * 0x8000 : sd * 0x7FFF;
+          const s = Math.max(-1, Math.min(1, arr[offset+i]||0));
+          const d = (Math.random()-0.5)*(1/32768)*0.5;
+          const sd = Math.max(-1, Math.min(1, s+d));
+          out[i] = sd < 0 ? sd*0x8000 : sd*0x7FFF;
         }
         return out;
       }
-
       function nextBatch() {
-        const end = Math.min(chunkIdx + BATCH, totalChunks);
+        const end = Math.min(chunkIdx+BATCH, totalChunks);
         for (let c = chunkIdx; c < end; c++) {
-          const off = c * CHUNK;
-          const len = Math.min(CHUNK, leftData.length - off);
+          const off = c*CHUNK, len = Math.min(CHUNK, leftData.length-off);
           const L = floatToInt16(leftData, off, len);
           const R = floatToInt16(rightData, off, len);
-          const enc = channels === 2 ? mp3enc.encodeBuffer(L, R) : mp3enc.encodeBuffer(L);
+          const enc = channels===2 ? mp3enc.encodeBuffer(L,R) : mp3enc.encodeBuffer(L);
           if (enc.length > 0) mp3Data.push(new Int8Array(enc));
         }
         chunkIdx = end;
-        if (onProgress) onProgress(chunkIdx / totalChunks);
-        if (chunkIdx < totalChunks) {
-          setTimeout(nextBatch, 0);
-        } else {
+        if (onProgress) onProgress(chunkIdx/totalChunks);
+        if (chunkIdx < totalChunks) setTimeout(nextBatch, 0);
+        else {
           const flushed = mp3enc.flush();
           if (flushed.length > 0) mp3Data.push(new Int8Array(flushed));
           resolve(new Blob(mp3Data, { type: 'audio/mpeg' }));
         }
       }
       nextBatch();
-    } catch(e) {
-      reject(e);
-    }
+    } catch(e) { reject(e); }
   });
 }
 
 // ============================================================
-// PROCESS ONE ENTRY
+// PROCESS ONE
 // ============================================================
 async function processOneEntry(entry, targetSecs, bitrateKbps, onFileProgress) {
   const buf = entry.audioBuffer;
@@ -740,24 +1096,21 @@ async function processOneEntry(entry, targetSecs, bitrateKbps, onFileProgress) {
   onFileProgress(0.3);
   normalizeAudioBuffer(rendered);
   onFileProgress(0.35);
-  const blob = await encodeLameMp3(rendered, bitrateKbps, (pct) => {
-    onFileProgress(0.35 + pct * 0.65);
-  });
+  const blob = await encodeLameMp3(rendered, bitrateKbps, pct => onFileProgress(0.35 + pct*0.65));
   entry.blob = blob;
   entry.speed = speed;
   entry.status = 'done';
   entry.actualBitrate = bitrateKbps;
-  entry.actualSizeMB = blob.size / (1024 * 1024);
+  entry.actualSizeMB = blob.size / (1024*1024);
   return blob;
 }
 
 // ============================================================
-// PROCESS ALL → ZIP
+// PROCESS ALL
 // ============================================================
 document.getElementById('processBtn').addEventListener('click', async () => {
   const ready = getAllReadyEntries();
   if (ready.length === 0) return;
-
   document.getElementById('processBtn').disabled = true;
   document.getElementById('resultWrap').classList.remove('show');
   document.getElementById('overallProgress').classList.add('show');
@@ -766,56 +1119,38 @@ document.getElementById('processBtn').addEventListener('click', async () => {
   const targetSecs = getTargetSecs();
   const bitrateKbps = calcBitrate(targetSecs);
   const skipped = getAllSkippedEntries();
-
-  if (skipped.length > 0) {
-    const tooLongCount = skipped.filter(e => e.status === 'toolong').length;
-    const tooSlowCount = skipped.filter(e => e.status === 'tooSlow').length;
-    let msg = [];
-    if (tooLongCount) msg.push(`${tooLongCount} output >7min`);
-    if (tooSlowCount) msg.push(`${tooSlowCount} N>2.00`);
-    showToast(`${skipped.length} file di-skip: ${msg.join(' · ')}`, 'warn');
-  }
+  if (skipped.length > 0) showToast(`${skipped.length} file di-skip`, 'warn');
 
   setOverallProgress(0, 'Memulai batch...', 'Menyiapkan', '');
   await tick();
 
   const zip = new JSZip();
-  const rootFolder = zip.folder('KAWARASTUDIO - AUDIO');
-  const pitchFolder = rootFolder.folder('PITCH - SOUND');
+  const pitchFolder = zip.folder('KAWARASTUDIO - AUDIO').folder('PITCH - SOUND');
   const doneEntries = [];
 
   for (let i = 0; i < ready.length; i++) {
     const entry = ready[i];
-    const fileNum = i + 1;
     const speed = entry.duration / targetSecs;
     const fileName = makeFileName(entry.title, speed);
-
-    const rowEl = document.getElementById('frow-' + entry.id);
-    if (rowEl) { entry.status = 'processing'; updateFileRow(entry); }
-
-    setOverallProgress((i / ready.length) * 100, `File ${fileNum}/${ready.length}`, 'Encoding MP3', entry.title);
+    entry.status = 'processing';
+    updateFileRow(entry);
+    setOverallProgress((i/ready.length)*100, `File ${i+1}/${ready.length}`, 'Encoding MP3', entry.title);
     await tick();
-
     try {
-      const blob = await processOneEntry(entry, targetSecs, bitrateKbps, (pct) => {
-        const base = (i / ready.length) * 100;
-        const step = (1 / ready.length) * 100;
-        setOverallProgress(base + pct * step * 0.94, `File ${fileNum}/${ready.length}`, `Encoding ${Math.round(pct * 100)}%`, entry.title);
-        const progEl = document.getElementById('fprog-' + entry.id);
-        if (progEl) progEl.style.width = (pct * 100) + '%';
+      const blob = await processOneEntry(entry, targetSecs, bitrateKbps, pct => {
+        const base = (i/ready.length)*100, step = (1/ready.length)*100;
+        setOverallProgress(base + pct*step*0.94, `File ${i+1}/${ready.length}`, `Encoding ${Math.round(pct*100)}%`, entry.title);
+        const progEl = document.getElementById('fprog-'+entry.id);
+        if (progEl) progEl.style.width = (pct*100)+'%';
       });
-
-      const arrBuf = await blob.arrayBuffer();
-      pitchFolder.file(fileName, arrBuf);
+      pitchFolder.file(fileName, await blob.arrayBuffer());
       entry.status = 'done';
       updateFileRow(entry);
       doneEntries.push({ ...entry, speed, fileName });
-
     } catch(err) {
-      console.error('Process error:', err);
       entry.status = 'error';
       updateFileRow(entry);
-      showToast(`Error: ${entry.title} — ${err.message}`, 'error');
+      showToast(`Error: ${entry.title}`, 'error');
     }
     await tick();
   }
@@ -826,7 +1161,6 @@ document.getElementById('processBtn').addEventListener('click', async () => {
   zipBlob = zipContent;
   setOverallProgress(100, 'Selesai!', 'ZIP Siap!', '');
   await tick(400);
-
   document.getElementById('overallProgress').classList.remove('show');
   showFinalResult(doneEntries, skipped, bitrateKbps, targetSecs, zipContent.size);
   document.getElementById('processBtn').disabled = false;
@@ -837,94 +1171,67 @@ document.getElementById('processBtn').addEventListener('click', async () => {
 // SHOW RESULT
 // ============================================================
 function showFinalResult(doneEntries, skippedEntries, bitrateKbps, targetSecs, zipBytes) {
-  const tM = Math.floor(targetSecs / 60), tS = targetSecs % 60;
-  const targetStr = tM + ':' + String(tS).padStart(2, '0');
-  const sizeMB = (zipBytes / (1024 * 1024)).toFixed(1);
-
+  const tM = Math.floor(targetSecs/60), tS = targetSecs%60;
+  const targetStr = tM+':'+String(tS).padStart(2,'0');
+  const sizeMB = (zipBytes/(1024*1024)).toFixed(1);
   const skippedHtml = skippedEntries.length > 0
-    ? `<div class="stat-card"><div class="stat-val red">${skippedEntries.length}</div><div class="stat-lbl">Di-Skip</div></div>`
-    : '';
-
+    ? `<div class="stat-card"><div class="stat-val red">${skippedEntries.length}</div><div class="stat-lbl">Di-Skip</div></div>` : '';
   document.getElementById('resultStats').innerHTML = `
-    <div class="stat-card"><div class="stat-val">${doneEntries.length}</div><div class="stat-lbl">Track Berhasil</div></div>
-    <div class="stat-card"><div class="stat-val">${targetStr}</div><div class="stat-lbl">Durasi Target</div></div>
-    <div class="stat-card"><div class="stat-val">${bitrateKbps}</div><div class="stat-lbl">Bitrate kbps</div></div>
-    <div class="stat-card"><div class="stat-val">${sizeMB}</div><div class="stat-lbl">ZIP Ukuran MB</div></div>
+    <div class="stat-card"><div class="stat-val">${doneEntries.length}</div><div class="stat-lbl">Berhasil</div></div>
+    <div class="stat-card"><div class="stat-val">${targetStr}</div><div class="stat-lbl">Target</div></div>
+    <div class="stat-card"><div class="stat-val">${bitrateKbps}</div><div class="stat-lbl">Kbps</div></div>
+    <div class="stat-card"><div class="stat-val">${sizeMB}</div><div class="stat-lbl">MB</div></div>
     ${skippedHtml}
   `;
-
   const trackListEl = document.getElementById('trackList');
   trackListEl.innerHTML = '';
-
   doneEntries.forEach((e, idx) => {
-    const normalSpd = getNormalSpeed(e.speed);
-    const actualMB = e.actualSizeMB ? e.actualSizeMB.toFixed(1) + 'MB' : '—';
     const div = document.createElement('div');
     div.className = 'track-item';
+    const mb = e.actualSizeMB ? e.actualSizeMB.toFixed(1)+'MB' : '—';
     div.innerHTML = `
-      <span class="track-num">${idx + 1}</span>
+      <span class="track-num">${idx+1}</span>
       <span class="track-name">${e.title}</span>
       <span class="track-speed-display">X${e.speed.toFixed(2)}</span>
-      <span class="track-normal-speed">N${normalSpd}</span>
-      <span class="track-bitrate-badge">${bitrateKbps}k · ${actualMB}</span>
+      <span class="track-normal-speed">N${getNormalSpeed(e.speed)}</span>
+      <span class="track-bitrate-badge">${bitrateKbps}k · ${mb}</span>
     `;
     trackListEl.appendChild(div);
   });
-
-  // Skipped entries dengan label alasan
   if (skippedEntries.length > 0) {
     const divider = document.createElement('div');
-    divider.style.cssText = 'font-family:var(--mono);font-size:10px;color:var(--danger);text-transform:uppercase;letter-spacing:3px;margin:10px 0 6px;opacity:0.8;';
-    divider.textContent = `⛔ Di-skip (${skippedEntries.length} file)`;
+    divider.style.cssText = 'font-family:var(--mono);font-size:9px;color:var(--danger);text-transform:uppercase;letter-spacing:2px;margin:8px 0 5px;';
+    divider.textContent = `⛔ Di-skip (${skippedEntries.length})`;
     trackListEl.appendChild(divider);
-
     skippedEntries.forEach((e, idx) => {
+      const speed = e.audioBuffer ? e.duration/targetSecs : 0;
+      const normalSpeed = speed > 0 ? (1/speed).toFixed(2) : '—';
+      const reason = e.status === 'tooSlow' ? `N${normalSpeed} >2.00` : `Output >7min`;
       const div = document.createElement('div');
       div.className = 'track-item skipped-row';
-      const speed = e.audioBuffer ? e.duration / targetSecs : 0;
-      const normalSpeed = speed > 0 ? (1 / speed).toFixed(2) : '—';
-      const skipReason = e.status === 'tooSlow'
-        ? `⛔ N${normalSpeed} &gt; N2.00`
-        : `⛔ Output ${Math.floor(targetSecs/60)}:${String(targetSecs%60).padStart(2,'0')} &gt;7min`;
       div.innerHTML = `
-        <span class="track-num" style="color:var(--danger)">${doneEntries.length + idx + 1}</span>
+        <span class="track-num" style="color:var(--danger)">${doneEntries.length+idx+1}</span>
         <span class="track-name muted">${e.title}</span>
-        <span class="track-skip-badge">${skipReason}</span>
+        <span class="track-skip-badge">⛔ ${reason}</span>
       `;
       trackListEl.appendChild(div);
     });
   }
-
-  const fileLines = doneEntries.slice(0, 3).map(e =>
-    `    &nbsp;&nbsp;&nbsp;📄 <span class="file">${e.fileName}</span>`
+  const fileLines = doneEntries.slice(0,3).map(e =>
+    `&nbsp;&nbsp;&nbsp;&nbsp;📄 <span style="color:var(--text);opacity:.7">${e.fileName}</span>`
   ).join('<br>');
-  const moreLines = doneEntries.length > 3
-    ? `<br>    &nbsp;&nbsp;&nbsp;<span style="color:var(--muted2)">...dan ${doneEntries.length - 3} file lainnya</span>`
-    : '';
-  const tooLongCount = skippedEntries.filter(e => e.status === 'toolong').length;
-  const tooSlowCount = skippedEntries.filter(e => e.status === 'tooSlow').length;
-  let skipLine = '';
-  if (tooLongCount) skipLine += `<br>    &nbsp;&nbsp;&nbsp;<span style="color:var(--danger)">⛔ ${tooLongCount} file di-skip (output >7:00 menit)</span>`;
-  if (tooSlowCount) skipLine += `<br>    &nbsp;&nbsp;&nbsp;<span style="color:var(--warn)">⛔ ${tooSlowCount} file di-skip (N>2.00 — audio terlalu lambat)</span>`;
-
+  const more = doneEntries.length > 3 ? `<br>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--muted2)">+${doneEntries.length-3} lainnya</span>` : '';
   document.getElementById('zipStructure').innerHTML = `
-    📦 <span class="folder">KAWARASTUDIO - AUDIO.zip</span><br>
-    └── 📁 <span class="folder">KAWARASTUDIO - AUDIO/</span><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;└── 📁 <span class="folder">PITCH - SOUND/</span><br>
-    ${fileLines}${moreLines}${skipLine}<br><br>
-    <span style="color:var(--muted2);font-size:10px">Format nama: JUDUL [N=normalspeed].mp3 · Bitrate: ${bitrateKbps}kbps · Skip: output >7:00 atau N>2.00</span>
+    📦 <span class="folder">KAWARASTUDIO-AUDIO.zip</span><br>
+    └── 📁 <span class="folder">PITCH - SOUND/</span><br>
+    ${fileLines}${more}<br>
+    <span style="color:var(--muted2);font-size:9px">Format: JUDUL [N=normalspeed].mp3 · ${bitrateKbps}kbps · Max 20MB</span>
   `;
-
-  document.getElementById('downloadBtn').textContent = `⬇ DOWNLOAD ZIP — KAWARASTUDIO-AUDIO (${sizeMB} MB)`;
+  document.getElementById('downloadBtn').textContent = `⬇ DOWNLOAD ZIP (${sizeMB} MB)`;
   document.getElementById('resultWrap').classList.add('show');
-
-  if (skippedEntries.length > 0 && doneEntries.length > 0) {
-    showToast(`✓ ${doneEntries.length} berhasil · ⛔ ${skippedEntries.length} di-skip`, 'warn');
-  } else if (doneEntries.length > 0) {
-    showToast(`✓ ${doneEntries.length} track selesai! ZIP ${sizeMB} MB siap.`, 'success');
-  } else {
-    showToast(`⛔ Semua file di-skip!`, 'error');
-  }
+  if (skippedEntries.length > 0 && doneEntries.length > 0) showToast(`✓ ${doneEntries.length} berhasil · ⛔ ${skippedEntries.length} di-skip`, 'warn');
+  else if (doneEntries.length > 0) showToast(`✓ ${doneEntries.length} track selesai! ZIP ${sizeMB}MB`, 'success');
+  else showToast('⛔ Semua file di-skip!', 'error');
 }
 
 document.getElementById('downloadBtn').addEventListener('click', () => {
@@ -936,27 +1243,6 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   showToast('Download dimulai ✓', 'success');
 });
-
-// ============================================================
-// SPEED PRESETS
-// ============================================================
-function applySpeedPreset(speedMultiplier) {
-  const all = uploadedEntries.filter(e => e.audioBuffer);
-  if (all.length === 0) {
-    showToast('Upload file dulu sebelum pakai preset!', 'warn');
-    return;
-  }
-  const maxDuration = Math.max(...all.map(e => e.duration));
-  const newTarget = Math.round(maxDuration / speedMultiplier);
-  const newMin = Math.floor(newTarget / 60);
-  const newSec = newTarget % 60;
-  tMinEl.value = newMin;
-  tSecEl.value = newSec;
-  updateTargetDisplay();
-  const tSecs = getTargetSecs();
-  const tM = Math.floor(tSecs / 60), tS = tSecs % 60;
-  showToast(`Preset ×${speedMultiplier} → target ${tM}:${String(tS).padStart(2,'0')}`, 'success');
-}
 
 // ============================================================
 // INIT
