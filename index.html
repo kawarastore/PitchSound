@@ -808,16 +808,13 @@ function applySpeedPreset(speedMultiplier) {
     showToast('Upload file dulu sebelum pakai preset!', 'warn');
     return;
   }
-  // Pakai durasi ORIGINAL tiap file masing-masing, bukan rata-rata
-  uploadedEntries.forEach(entry => {
-    if (entry.audioBuffer) {
-      const newTarget = Math.round(entry.duration / speedMultiplier);
-      const newMin = Math.floor(newTarget / 60);
-      const newSec = newTarget % 60;
-      tMinEl.value = newMin;
-      tSecEl.value = newSec;
-    }
-  });
+  // Pakai file TERPANJANG sebagai basis — agar semua file tidak melebihi speedMultiplier
+  const maxDuration = Math.max(...ready.map(e => e.duration));
+  const newTarget = Math.round(maxDuration / speedMultiplier);
+  const newMin = Math.floor(newTarget / 60);
+  const newSec = newTarget % 60;
+  tMinEl.value = newMin;
+  tSecEl.value = newSec;
   updateTargetDisplay();
   uploadedEntries.forEach(entry => {
     if (entry.audioBuffer) {
